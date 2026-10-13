@@ -43,6 +43,14 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false, // hide "X-Powered-By: Next.js"
+  // Pictures are refused at 1 MB in the form. The notes PDF can be 20 MB,
+  // so the request has to be allowed through far enough for that check
+  // to answer instead of crashing the save.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "40mb",
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

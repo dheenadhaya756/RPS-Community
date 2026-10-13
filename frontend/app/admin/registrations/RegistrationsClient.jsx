@@ -49,7 +49,7 @@ function csvCell(value) {
   return `"${safe.replace(/"/g, '""')}"`;
 }
 
-export default function RegistrationsClient({ rows, failed, viewer, workshops, initialSlug, since, trash = [], hasAudit = true }) {
+export default function RegistrationsClient({ rows, failed, workshopsError, viewer, workshops, initialSlug, since, trash = [], hasAudit = true }) {
   const [q, setQ] = useState('');
   // Opens on the most recent session rather than on everything at once: the
   // question this page gets asked is almost always about the next one.
@@ -250,6 +250,12 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
             failed. If this persists, check that SUPABASE_SERVICE_ROLE_KEY is set on the server.
           </div>
         )}
+        {workshopsError && (
+          <div className={styles.warn} role="alert">
+            Could not load the workshops. The people below are still here, but their workshop
+            names did not come through.
+          </div>
+        )}
 
         <div className={styles.controls}>
           <input
@@ -286,6 +292,7 @@ export default function RegistrationsClient({ rows, failed, viewer, workshops, i
           <EmailBox
             key={slug}
             slug={slug}
+            workshop={selected}
             emails={inWorkshop
               .filter((r) => r.status === 'REGISTERED' || r.status === 'ATTENDED')
               .map((r) => r.email)}

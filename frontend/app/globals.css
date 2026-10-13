@@ -358,6 +358,69 @@
   text-align: left;
 }
 
+/* Workshop add and edit. The side column has to be in this file: the form's
+   own stylesheet arrives a moment later, and the steps would otherwise sit
+   in a row and then jump into the column. */
+.admin-form-layout { min-width: 0; }
+.admin-form-steps {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  position: sticky;
+  top: calc(var(--nav-h) + 12px);
+  z-index: 3;
+}
+.admin-form-pair {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+}
+.admin-form-pair-wide {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.admin-form-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 28px;
+}
+.admin-form-actions .admin-form-save { margin-left: auto; }
+.admin-form-layout input:not([type="file"]),
+.admin-form-layout textarea,
+.admin-form-layout select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 960px) {
+  .admin-form-layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  .admin-form-steps {
+    flex-direction: column;
+    overflow: visible;
+    align-self: start;
+  }
+  .admin-form-steps > button,
+  .admin-form-steps > .admin-form-step {
+    flex: none;
+    width: 100%;
+  }
+  .admin-form-actions .admin-form-stepbtn { display: none; }
+}
+
+@media (max-width: 560px) {
+  .admin-form-pair,
+  .admin-form-pair-wide { grid-template-columns: 1fr; }
+}
+
 /* The signup form runs long — keep it comfortable on a 360px phone. */
 @media (max-width: 420px) {
   .ob-card { padding: 22px 18px 26px; }

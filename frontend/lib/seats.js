@@ -1,6 +1,7 @@
 import { sendEnrollmentEmail } from "@/lib/emails/enrollment";
 import { recordRegistration } from "@/lib/sheets";
 import { upcoming, bySlug } from "@/lib/community/workshops";
+import { loadPublicWorkshops } from "@/lib/community/publicWorkshops";
 
 /* =============================================================================
    There is no waitlist. Everyone who registers is in.
@@ -19,7 +20,12 @@ import { upcoming, bySlug } from "@/lib/community/workshops";
    ============================================================================= */
 export async function promoteWaitlisted(admin) {
   try {
-    const slugs = upcoming().map((w) => w.slug);
+    const { workshops, error: loadError } = await loadPublicWorkshops();
+    if (loadError) {
+      console.error(`[seats] ${loadError}`);
+      return 0;
+    }
+    const slugs = upcoming(workshops).map((w) => w.slug);
     if (!slugs.length) return 0;
 
     const { data, error } = await admin
@@ -38,7 +44,7 @@ export async function promoteWaitlisted(admin) {
       await sendEnrollmentEmail({ to: r.email, name: r.name, slug: r.workshop_slug, status: "REGISTERED" });
       await recordRegistration({
         slug: r.workshop_slug,
-        workshopTitle: bySlug(r.workshop_slug)?.title || r.workshop_slug,
+        workshopTitle: bySlug(r.workshop_slug, workshops)?.title || r.workshop_slug,
         name: r.name,
         email: r.email,
         whatsapp: r.whatsapp,

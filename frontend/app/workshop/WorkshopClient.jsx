@@ -18,29 +18,33 @@ import {
    reader is authenticated. That's why nothing here is behind a gate: the
    recording plays and every file row is unlocked, which is the whole point of
    the members' page as against the public /workshops/[slug] one. */
-export default function WorkshopClient({ name, email, avatarUrl, initials }) {
+export default function WorkshopClient({ name, email, avatarUrl, initials, workshops, loadError }) {
   const { toasts, toast } = useToasts();
   const [playing, setPlaying] = useState(false);
 
   // The session a member is here for: the next one if there is one, otherwise
   // the last cohort, which is where the recording and the files live.
-  const w = upcoming()[0] || featuredPast();
+  const w = upcoming(workshops)[0] || featuredPast(workshops);
   const hs = hostsOf(w);
   const h = hs.length ? { name: hostNames(hs) } : null;
   const past = w ? isPast(w) : false;
   const ready = w ? recordingReady(w) : false;
-  const ts = w ? testimonials(w.id) : [];
-  const nextUp = upcoming()[0];
+  const ts = w ? testimonials(w.id, workshops) : [];
+  const nextUp = upcoming(workshops)[0];
 
   useReveal([w?.id, playing]);
 
-  if (!w) {
+  if (loadError || !w) {
     return (
       <SiteShell active="workshops">
         <div className="wrap page-top" style={{ paddingBottom: 96 }}>
           <div className="callout plain">
-            <h2>Nothing scheduled just yet</h2>
-            <p>The next one&rsquo;s being cooked. The group chat hears first.</p>
+            <h2>{loadError ? 'Could not load the workshops.' : 'Nothing scheduled just yet'}</h2>
+            <p>
+              {loadError
+                ? 'The list did not come through. Refresh the page and try again.'
+                : 'The next one’s being cooked. The group chat hears first.'}
+            </p>
             <div className="cta-row">
               <Link className="btn go" href="/workshops">
                 See workshops

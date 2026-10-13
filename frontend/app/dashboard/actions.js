@@ -15,7 +15,7 @@ export async function submitAssignment(input) {
     return { ok: false, error: parsed.error.issues[0]?.message || "Invalid input." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
     error: authError,

@@ -21,12 +21,12 @@ import {
    `submissions` table. To re-enable, render a form here and call
    submitAssignment({ link, note }); lib/logic/dashboard.js still holds the
    field handlers it used to drive. */
-export default function DashboardClient({ name, email, avatarUrl, initials, firstName }) {
+export default function DashboardClient({ name, email, avatarUrl, initials, firstName, workshops, loadError }) {
   const { user } = useSession();
   const { seats } = useSeats(user?.id);
 
   const mine = Object.keys(seats)
-    .map((slug) => ({ slug, ...seats[slug], workshop: bySlug(slug) }))
+    .map((slug) => ({ slug, ...seats[slug], workshop: bySlug(slug, workshops) }))
     .filter((e) => e.workshop);
 
   const coming = mine
@@ -61,7 +61,12 @@ export default function DashboardClient({ name, email, avatarUrl, initials, firs
           </div>
         </div>
 
-        {!mine.length ? (
+        {loadError ? (
+          <div className="callout plain" style={{ marginTop: 36 }}>
+            <h3>Could not load the workshops.</h3>
+            <p>The list did not come through. Refresh the page and try again.</p>
+          </div>
+        ) : !mine.length ? (
           <div className="callout plain" style={{ marginTop: 36 }}>
             <h3>Nothing here yet, {firstName}</h3>
             <p>Grab a seat and it&rsquo;ll show up here with your Meet link.</p>

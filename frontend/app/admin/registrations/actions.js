@@ -24,7 +24,7 @@ const MISSING_COLUMN = /column .* does not exist|could not find the .* column/i;
 const BAD_STATUS = /violates check constraint .*status/i;
 
 async function requireAdmin() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -202,13 +202,15 @@ export async function sendWorkshopEmail({ slug, subject, body, test = false, tes
   const user = await requireAdmin();
   if (!user) return { ok: false, error: "Not allowed." };
 
-  const { bySlug } = await import("@/lib/community/workshops");
+  const { loadAllWorkshops } = await import("@/lib/community/publicWorkshops");
   const { PLACEHOLDER } = await import("@/lib/emails/templates");
   const { buildBroadcastEmail } = await import("@/lib/emails/broadcast");
   const { openMailer, mailConfigured, mailProvider } = await import("@/lib/mail");
   const { createHash } = await import("crypto");
 
-  const w = bySlug(String(slug || ""));
+  const { workshops, error: workshopError } = await loadAllWorkshops();
+  if (workshopError) return { ok: false, error: "Could not load that workshop. Please try again." };
+  const w = (workshops || []).find((item) => item.slug === String(slug || ""));
   if (!w) return { ok: false, error: "Pick a workshop first." };
 
   const subj = String(subject || "").trim();

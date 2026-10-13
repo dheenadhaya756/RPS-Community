@@ -5,7 +5,8 @@ import { enrollmentSchema } from "@/lib/validation";
 import { sendEnrollmentEmail } from "@/lib/emails/enrollment";
 import { recordRegistration } from "@/lib/sheets";
 import { promoteWaitlisted } from "@/lib/seats";
-import { bySlug, isPast } from "@/lib/community/workshops";
+import { isPast } from "@/lib/community/workshops";
+import { loadPublicWorkshop } from "@/lib/community/publicWorkshops";
 
 // Server Actions for workshop seats. Registering needs an account and a
 // signed-in session: the client can only influence the form fields, and who
@@ -20,23 +21,22 @@ import { bySlug, isPast } from "@/lib/community/workshops";
    still-upcoming workshops, so a made-up slug from the browser can never
    create a row. `ignoreDuplicates` makes it `on conflict do nothing`: a row
    someone has edited by hand is left alone. Never throws. */
-async function ensureSeatRow(admin, slug) {
-  const w = bySlug(slug);
+async function ensureSeatRow(admin, w) {
   if (!w || isPast(w)) return false;
   try {
     const { error } = await admin
       .from("workshop_seats")
       .upsert(
-        { slug: w.slug, capacity: w.capacity || 45, seeded_enrollments: w.seededEnrollments || 0 },
+        { slug: w.slug, capacity: w.capacity || 45, seeded_enrollments: 0 },
         { onConflict: "slug", ignoreDuplicates: true }
       );
     if (error) {
-      console.error(`[enroll] Could not add the seat row for ${slug}: ${error.message}`);
+      console.error(`[enroll] Could not add the seat row for ${w.slug}: ${error.message}`);
       return false;
     }
     return true;
   } catch (e) {
-    console.error(`[enroll] Could not add the seat row for ${slug}: ${e?.message || e}`);
+    console.error(`[enroll] Could not add the seat row for ${w.slug}: ${e?.message || e}`);
     return false;
   }
 }
@@ -50,7 +50,7 @@ async function ensureSeatRow(admin, slug) {
      left it. Putting someone back is the admins' call, from the trash.
    - Otherwise: a new REGISTERED row. The unique (user_id, workshop_slug)
      constraint means two submits at once still make one row. */
-async function takeSeat(admin, { userId, userEmail, slug, name, email, whatsapp }) {
+async function takeSeat(admin, { userId, userEmail, slug, name, email, whatsapp, workshop }) {
   const read = () =>
     admin.from("enrollments").select("*").eq("user_id", userId).eq("workshop_slug", slug).maybeSingle();
 
@@ -68,7 +68,7 @@ async function takeSeat(admin, { userId, userEmail, slug, name, email, whatsapp 
   }
 
   const { data: seatRow } = await admin.from("workshop_seats").select("slug").eq("slug", slug).maybeSingle();
-  if (!seatRow && !(await ensureSeatRow(admin, slug))) {
+  if (!seatRow && !(await ensureSeatRow(admin, workshop))) {
     return { error: "no seat row" };
   }
 
@@ -125,7 +125,7 @@ async function afterSeat(admin, { slug, row, isNew, typed }) {
 
   await recordRegistration({
     slug,
-    workshopTitle: bySlug(slug)?.title || slug,
+    workshopTitle: (await loadPublicWorkshop(slug)).workshop?.title || slug,
     name,
     email,
     whatsapp,
@@ -168,7 +168,7 @@ export async function enrollInWorkshop(input) {
     return { ok: false, error: parsed.error.issues[0]?.message || "Invalid input." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
     error: authError,
@@ -179,7 +179,8 @@ export async function enrollInWorkshop(input) {
   }
 
   const { slug, name, email, whatsapp } = parsed.data;
-  const w = bySlug(slug);
+  const { workshop: w, error: loadError } = await loadPublicWorkshop(slug);
+  if (loadError) return { ok: false, error: "Could not load that workshop. Please try again." };
   if (!w || isPast(w)) return { ok: false, error: "That workshop isn’t taking seats." };
 
   const admin = adminClient();
@@ -205,7 +206,7 @@ export async function enrollInWorkshop(input) {
     };
   }
 
-  const res = await takeSeat(admin, { userId: user.id, userEmail: user.email, slug, name, email, whatsapp });
+  const res = await takeSeat(admin, { userId: user.id, userEmail: user.email, slug, name, email, whatsapp, workshop: w });
   if (res.error) {
     console.error(`[enroll] Seat for ${slug} failed: ${res.error}`);
     return { ok: false, error: COULD_NOT };
@@ -219,7 +220,7 @@ export async function cancelEnrollment(slug) {
     return { ok: false, error: "Missing workshop." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
     error: authError,
@@ -248,7 +249,7 @@ export async function cancelEnrollment(slug) {
   if (leaving?.email) {
     await recordRegistration({
       slug: clean,
-      workshopTitle: bySlug(clean)?.title || clean,
+      workshopTitle: (await loadPublicWorkshop(clean)).workshop?.title || clean,
       name: leaving.name,
       email: leaving.email,
       whatsapp: leaving.whatsapp,
