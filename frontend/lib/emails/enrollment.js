@@ -16,8 +16,9 @@ import {
   ACCENT, INK, MUTED, LINE, FONT, abs, esc, firstName, emailBanner, button, p, h2, frame,
 } from '@/lib/emails/layout';
 import {
-  bySlug, hostsOf, hostNames, dayShort, time, dateFull, calendarUrl, durationLabel, workshopUrl,
+  hostsOf, hostNames, dayShort, time, dateFull, calendarUrl, durationLabel, workshopUrl,
 } from '@/lib/community/workshops';
+import { loadPublicWorkshop } from '@/lib/community/publicWorkshops';
 
 /* Only a real room code counts. A placeholder Meet URL must never go out —
    someone would click it the morning of the session and land nowhere. */
@@ -211,8 +212,8 @@ export function buildEnrollmentEmail({ name, workshop }) {
    never throws — the caller has already saved the seat by the time this runs,
    and a mail problem must not turn that into a failure. */
 export async function sendEnrollmentEmail({ to, name, slug }) {
-  const workshop = bySlug(slug);
-  if (!workshop) {
+  const { workshop, error: loadError } = await loadPublicWorkshop(slug);
+  if (loadError || !workshop) {
     console.error('[mail] No workshop content for "' + slug + '" — confirmation not sent.');
     return { ok: false, error: 'Unknown workshop.' };
   }

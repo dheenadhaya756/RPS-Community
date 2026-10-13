@@ -45,7 +45,7 @@ function csvCell(value) {
   return `"${safe.replace(/"/g, '""')}"`;
 }
 
-export default function LoginsClient({ rows, failed, viewer }) {
+export default function LoginsClient({ rows, failed, workshopsError, viewer }) {
   const [q, setQ] = useState('');
   const [which, setWhich] = useState('all'); // 'all' | 'seat' | 'none'
   const [copied, setCopied] = useState('');
@@ -127,6 +127,12 @@ export default function LoginsClient({ rows, failed, viewer }) {
           <div className={styles.warn} role="alert">
             The account list could not be read. The page is fine — the call to Supabase
             failed. If this persists, check that SUPABASE_SERVICE_ROLE_KEY is set on the server.
+          </div>
+        )}
+        {workshopsError && (
+          <div className={styles.warn} role="alert">
+            Could not load the workshops. Accounts are still listed, but a seat shows its
+            slug instead of the cohort name.
           </div>
         )}
 

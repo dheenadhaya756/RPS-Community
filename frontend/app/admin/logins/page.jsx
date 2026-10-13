@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
-import { WORKSHOPS } from "@/lib/community/content";
+import { loadAllWorkshops } from "@/lib/community/publicWorkshops";
 import LoginsClient from "./LoginsClient";
 
 export const metadata = {
@@ -21,7 +21,7 @@ export const metadata = {
    whether or not they ever took a seat. /admin/registrations is only the
    people who filled in a workshop's form. */
 export default async function LoginsPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -57,8 +57,9 @@ export default async function LoginsPage() {
   ]);
 
   const profileById = new Map((profiles || []).map((p) => [p.id, p]));
+  const { workshops, error: workshopError } = await loadAllWorkshops();
   const cohortBySlug = Object.fromEntries(
-    WORKSHOPS.map((w) => [w.slug, w.cohortLabel || w.title])
+    (workshops || []).map((w) => [w.slug, w.cohortLabel || w.title])
   );
   const seatsByUser = new Map();
   (seats || []).forEach((s) => {
@@ -88,5 +89,5 @@ export default async function LoginsPage() {
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  return <LoginsClient rows={rows} failed={failed} viewer={user.email} />;
+  return <LoginsClient rows={rows} failed={failed} workshopsError={workshopError} viewer={user.email} />;
 }

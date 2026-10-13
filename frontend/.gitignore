@@ -1,4 +1,7 @@
 /node_modules
+# Pictures and PDFs an admin uploads. On the VPS this folder is elsewhere
+# (UPLOAD_DIR). Either way it is not part of the code.
+/uploads
 /.next
 /out
 /build
@@ -11,3 +14,4 @@ npm-debug.log*
 !.env.example
 *.bak
 next-env.d.ts
+package-lock.json

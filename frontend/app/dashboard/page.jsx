@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { loadPublicWorkshops } from "@/lib/community/publicWorkshops";
 import DashboardClient from "./DashboardClient";
 
 function initialsFrom(name) {
@@ -14,7 +15,7 @@ function initialsFrom(name) {
 // fields below are passed to the client shell. Middleware already guards this
 // route; the getUser() check is a defensive fallback.
 export default async function DashboardPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const {
     data: { user },
@@ -45,6 +46,8 @@ export default async function DashboardPage() {
   // NOTE: the latest-submission read is dropped while the submit form is
   // disabled. Re-add it here (and pass initial props) when the form returns.
 
+  const { workshops, error } = await loadPublicWorkshops();
+
   return (
     <DashboardClient
       name={fullName || "Your profile"}
@@ -52,6 +55,8 @@ export default async function DashboardPage() {
       avatarUrl={profile?.avatar_url || ""}
       initials={initialsFrom(fullName)}
       firstName={firstName}
+      workshops={workshops}
+      loadError={error}
     />
   );
 }

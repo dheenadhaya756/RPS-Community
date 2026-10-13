@@ -2,7 +2,6 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import styles from './registrations.module.css';
 import { sendWorkshopEmail, sendConfirmationTest } from './actions';
-import { bySlug } from '@/lib/community/workshops';
 import { templatesFor, PLACEHOLDER } from '@/lib/emails/templates';
 
 /* "Email everyone on this list" — for the workshop picked at the top of the
@@ -29,9 +28,8 @@ function writeSent(key, set) {
   try { localStorage.setItem(key, JSON.stringify([...set])); } catch { /* private mode */ }
 }
 
-export default function EmailBox({ slug, emails = [], viewer }) {
-  const w = useMemo(() => bySlug(slug), [slug]);
-  const templates = useMemo(() => templatesFor(w), [w]);
+export default function EmailBox({ slug, workshop, emails = [], viewer }) {
+  const templates = useMemo(() => templatesFor(workshop), [workshop]);
 
   const [pick, setPick] = useState(templates[0]?.id || 'blank');
   const [subject, setSubject] = useState(templates[0]?.subject || '');
@@ -48,7 +46,7 @@ export default function EmailBox({ slug, emails = [], viewer }) {
   const approved = list.length;
   const toGo = list.filter((e) => !sentSet.has(e)).length;
 
-  if (!w) return null;
+  if (!workshop) return null;
 
   const left = (subject + '\n' + body).match(PLACEHOLDER);
 
@@ -120,7 +118,7 @@ export default function EmailBox({ slug, emails = [], viewer }) {
       <div className={styles.mailHead}>
         <h2 id="mail-h" className={styles.mailTitle}>Email everyone on this list</h2>
         <span className={styles.trashSub}>
-          Goes to the {approved} approved {approved === 1 ? 'person' : 'people'} for {w.cohortLabel || w.title},
+          Goes to the {approved} approved {approved === 1 ? 'person' : 'people'} for {workshop.cohortLabel || workshop.title},
           from cohorts@rockpaperscissors.studio, with the workshop thumbnail on top.
         </span>
       </div>

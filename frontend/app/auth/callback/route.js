@@ -14,7 +14,7 @@ export async function GET(request) {
   const next = searchParams.get("next") || "/dashboard";
 
   if (code) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       // First-time OAuth users have a profile row (created by the DB trigger)

@@ -4,18 +4,22 @@
    Status is always derived from `dateTime`, never a stored flag.
    ============================================================================= */
 
-import { WORKSHOPS, HOSTS, TESTIMONIALS, FAQS } from './content';
+import { FAQS } from './content';
 
-export function allWorkshops() {
-  return WORKSHOPS.slice().sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+function source(list) {
+  return Array.isArray(list) ? list : [];
 }
 
-export function bySlug(slug) {
-  return WORKSHOPS.find((w) => w.slug === slug) || null;
+export function allWorkshops(list) {
+  return source(list).slice().sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
 }
 
-export function byId(id) {
-  return WORKSHOPS.find((w) => w.id === id) || null;
+export function bySlug(slug, list) {
+  return source(list).find((w) => w.slug === slug) || null;
+}
+
+export function byId(id, list) {
+  return source(list).find((w) => w.id === id) || null;
 }
 
 export function isPast(w) {
@@ -87,30 +91,67 @@ export function recordingEmbed(url) {
   return null;
 }
 
-export function upcoming() {
-  return allWorkshops().filter((w) => !isPast(w));
+export function upcoming(list) {
+  return allWorkshops(list).filter((w) => !isPast(w));
 }
 
-export function past() {
-  return allWorkshops().filter(isPast).reverse();
+export function past(list) {
+  return allWorkshops(list).filter(isPast).reverse();
 }
 
-export function featuredPast() {
-  const list = past();
-  return list.find((w) => w.featured) || list[0] || null;
-}
-
-export function host(id) {
-  return HOSTS.find((h) => h.id === id) || null;
+export function featuredPast(list) {
+  const rows = past(list);
+  return rows.find((w) => w.featured) || rows[0] || null;
 }
 
 export function faqs() {
   return FAQS.slice().sort((a, b) => a.order - b.order);
 }
 
-export function testimonials(workshopId) {
-  if (workshopId) return TESTIMONIALS.filter((t) => t.workshopId === workshopId);
-  return TESTIMONIALS.filter((t) => t.featured);
+export function testimonials(workshopId, list) {
+  if (!Array.isArray(list)) return [];
+  if (workshopId) return list.find((w) => w.id === workshopId)?.quotes || [];
+  return list.flatMap((w) => (w.quotes || []).filter((t) => t.featured));
+}
+
+function quoteText(list) {
+  return (list || []).filter((t) => String(t.quote || '').trim()).slice(0, 4);
+}
+
+function featuredQuotes(w) {
+  return quoteText((w?.quotes || []).filter((t) => t.featured));
+}
+
+/* Detail-page quotes. An upcoming workshop shows the last finished session's
+   featured quotes, or the session just before that if the last one has none.
+   A past workshop shows its own featured quotes, or the session just before
+   it when it has none. */
+export function detailQuotes(workshop, list) {
+  const finished = past(list);
+  const labelFor = (w) => (w?.cohortLabel ? `What ${w.cohortLabel} said` : 'From earlier cohorts');
+  const from = (w) => {
+    if (!w) return [];
+    const featured = featuredQuotes(w);
+    return featured.length ? featured : quoteText(w.quotes);
+  };
+
+  if (!workshop || !isPast(workshop)) {
+    const last = finished[0];
+    const source = featuredQuotes(last).length ? last : finished[1];
+    const quotes = from(source);
+    return { quotes, label: quotes.length ? labelFor(source) : 'What people said' };
+  }
+
+  const own = featuredQuotes(workshop);
+  if (own.length) return { quotes: own, label: 'What people said' };
+
+  const index = finished.findIndex((w) => w.id === workshop.id);
+  const earlier = index >= 0 ? finished[index + 1] : null;
+  const borrowed = from(earlier);
+  if (borrowed.length) return { quotes: borrowed, label: labelFor(earlier) };
+
+  const leftover = quoteText(workshop.quotes);
+  return { quotes: leftover, label: 'What people said' };
 }
 
 /* Seat counts, the "N of M seats left" meter and the derived full/waitlist
@@ -187,8 +228,8 @@ export function calParts(iso) {
    the name/email/WhatsApp panel up on arrival, so the button lands on the thing
    it names rather than on a page with the same button further down.
    Nothing upcoming → the listing, which owns the empty state. */
-export function seatUrl() {
-  const next = upcoming()[0];
+export function seatUrl(list) {
+  const next = upcoming(list)[0];
   return next ? `/workshops/${encodeURIComponent(next.slug)}?action=enroll` : '/workshops';
 }
 
@@ -270,13 +311,10 @@ export function downloadResource(r) {
   return true;
 }
 
-/* Everyone running a session, in order. A workshop names one host with
-   `hostId` or several with `hostIds`; every renderer goes through here so
-   neither shape is a special case anywhere else. */
+/* Everyone running a session, in the order stored on the workshop. */
 export function hostsOf(w) {
-  if (!w) return [];
-  const ids = Array.isArray(w.hostIds) && w.hostIds.length ? w.hostIds : w.hostId ? [w.hostId] : [];
-  return ids.map(host).filter(Boolean);
+  if (!w || !Array.isArray(w.hosts)) return [];
+  return w.hosts;
 }
 
 /* "Vivin Richard" for one; first names for several — "Vivin, Vineet,

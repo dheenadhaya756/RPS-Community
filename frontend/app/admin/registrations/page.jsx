@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin";
-import { WORKSHOPS } from "@/lib/community/content";
-import { allWorkshops, isPast, dateFull } from "@/lib/community/workshops";
+import { loadAllWorkshops } from "@/lib/community/publicWorkshops";
+import { isPast, dateFull } from "@/lib/community/workshops";
 import { promoteWaitlisted } from "@/lib/seats";
 import RegistrationsClient from "./RegistrationsClient";
 
@@ -39,7 +39,7 @@ export const metadata = {
      every normal session to its own row. That key never leaves the server, and
      only the rows rendered below are serialised to the client. */
 export default async function RegistrationsPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -96,24 +96,24 @@ export default async function RegistrationsPage() {
   const data = live.data;
   const error = live.error;
 
-  // Titles come from the content module rather than the database, which only
-  // ever stores the slug.
-  const titles = Object.fromEntries(WORKSHOPS.map((w) => [w.slug, w.title]));
-
-  /* Newest first, so the session everyone is currently asking about is the one
-     the page opens on. Built from the content module rather than from the rows,
-     so a workshop nobody has registered for yet can still be selected — its
-     empty list is an answer, and a missing option looks like a bug. */
-  const workshops = allWorkshops()
+  /* Names, dates, and Meet links come from the workshops table. A registration
+     row only stores the slug, and this read does not change that row. */
+  const { workshops: stored, error: workshopError } = await loadAllWorkshops();
+  const workshops = (stored || [])
     .slice()
     .sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime))
     .map((w) => ({
       slug: w.slug,
       title: w.title,
       cohort: w.cohortLabel || "",
-      date: dateFull(w.dateTime),
-      past: isPast(w),
+      cohortLabel: w.cohortLabel || "",
+      date: w.dateTime ? dateFull(w.dateTime) : "",
+      past: w.dateTime ? isPast(w) : false,
+      dateTime: w.dateTime,
+      durationMins: w.durationMins,
+      meetLink: w.meetLink,
     }));
+  const titles = Object.fromEntries(workshops.map((w) => [w.slug, w.title]));
 
   // The upcoming session, not merely the newest row — once 19 Sep has been and
   // gone this should follow on to whatever is next rather than staying put.
@@ -139,6 +139,7 @@ export default async function RegistrationsPage() {
     <RegistrationsClient
       rows={rows}
       failed={!!error}
+      workshopsError={workshopError}
       viewer={user.email}
       workshops={workshops}
       initialSlug={nextUp?.slug || "all"}

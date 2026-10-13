@@ -7,6 +7,7 @@ import { CONFIG } from '@/lib/community/content';
 import { seatUrl, initialsFrom } from '@/lib/community/workshops';
 import { useSession, identityFrom, useStuck } from '@/lib/community/hooks';
 import { clearClientState } from '@/lib/community/session-state';
+import { currentUserIsAdmin } from '@/lib/admin-access';
 
 /* The wordmark is the fallback. CONFIG.logoUrl takes over everywhere, nav and
    footer. Some marks (white line-art, no fill) only read against a dark chip —
@@ -37,7 +38,25 @@ export default function Nav({ active }) {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const menuWrap = useRef(null);
+
+  // Guests and ordinary accounts get false. Only a signed-in admin email
+  // flips this, and the check happens on the server so the allow-list never
+  // reaches the browser.
+  useEffect(() => {
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
+    let alive = true;
+    currentUserIsAdmin().then((yes) => {
+      if (alive) setIsAdmin(!!yes);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     const onDoc = (e) => {
@@ -125,6 +144,11 @@ export default function Nav({ active }) {
                     <b>{me.name}</b>
                     <small>{me.email}</small>
                   </div>
+                  {isAdmin && (
+                    <Link href="/admin/workshops" role="menuitem" onClick={() => setMenuOpen(false)}>
+                      Admin
+                    </Link>
+                  )}
                   <Link href="/dashboard" role="menuitem" onClick={() => setMenuOpen(false)}>
                     My workshops
                   </Link>

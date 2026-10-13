@@ -9,3 +9,6 @@ community website/
 # Editors
 *.swp
 *.bak
+
+WORKSHOP-ADMIN-PLAN.md
+/uploads
