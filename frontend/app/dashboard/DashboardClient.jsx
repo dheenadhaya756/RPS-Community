@@ -140,10 +140,6 @@ function Row({ e }) {
         Get the files
       </Link>
     ) : null;
-  } else if (e.status === 'WAITLISTED') {
-    statusCls = 'wait';
-    statusText = 'Waitlisted';
-    sub = `${dayShort(w.dateTime)} · ${time(w.dateTime)} · We’ll message if a seat frees up`;
   } else if (w.meetLink) {
     action = (
       <a className="btn sm" href={w.meetLink} target="_blank" rel="noopener noreferrer">

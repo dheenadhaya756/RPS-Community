@@ -125,7 +125,6 @@ function WorkshopDetail({ workshops, loadError }) {
   const [panelMode, setPanelMode] = useState('default'); // 'default' | 'confirm'
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState(null);
-  const [raceNotice, setRaceNotice] = useState(false);
   const [delivered, setDelivered] = useState(false);
   const [saving, setSaving] = useState(false);
   // Giving up a seat is a real decision, so it asks once before it happens.
@@ -272,8 +271,7 @@ function WorkshopDetail({ workshops, loadError }) {
     }
 
     setSaving(true);
-    // The database decides REGISTERED vs WAITLISTED, with the capacity row
-    // locked — so this is the first moment anyone knows which one it is.
+    // There is no waitlist: a saved seat is a registered one.
     const res = await enroll(w.slug, details);
     setSaving(false);
 
@@ -283,16 +281,11 @@ function WorkshopDetail({ workshops, loadError }) {
       return;
     }
 
-    // The 150-vs-45 race: seats were open when they started, gone by confirm.
-    setRaceNotice(recallSeats() !== 0 && res.status === 'WAITLISTED');
     forgetSeats();
     setErrors(null);
     setForm(null);
     setPanelMode('default');
-    toast(
-      res.status === 'REGISTERED' ? 'You’re in. See you Saturday.' : 'You’re on the waitlist.',
-      res.status === 'REGISTERED' ? 'good' : 'warn'
-    );
+    toast(`Registration successful. See you on ${dayShort(w.dateTime)}.`, 'good');
   }
 
   /* A seat is not given up by a single stray tap. The link swaps for a plain
@@ -322,10 +315,12 @@ function WorkshopDetail({ workshops, loadError }) {
 
   /* ---------------------------------------------------- enrolment panel */
   function Panel() {
-    if (mine && mine.status === 'REGISTERED') {
+    // WAITLISTED only survives on rows from before there was no waitlist; it
+    // reads as what it now means — registered.
+    if (mine && (mine.status === 'REGISTERED' || mine.status === 'WAITLISTED')) {
       return (
         <div className="panel is-registered">
-          <span className="status-line">✓ Registered</span>
+          <span className="status-line">✓ Registration successful</span>
           <h4>You&rsquo;re in.</h4>
           <DayBox w={w} />
           <p style={{ fontSize: '.95rem', marginTop: 0 }}>
@@ -360,29 +355,6 @@ function WorkshopDetail({ workshops, loadError }) {
           >
             Add to calendar
           </a>
-        </div>
-      );
-    }
-
-    if (mine && mine.status === 'WAITLISTED') {
-      return (
-        <div className="panel is-waitlisted">
-          {raceNotice && (
-            <div className="banner" role="status">
-              Someone took the last seat while you were signing in. Rude. You&rsquo;re on the
-              waitlist.
-            </div>
-          )}
-          <span className="status-line">◔ Waitlisted</span>
-          <h4>You&rsquo;re on the waitlist.</h4>
-          <DayBox w={w} note="If a seat frees up, you’re first" />
-          <p style={{ fontSize: '.95rem', marginTop: 0 }}>
-            Seats open up more than you&rsquo;d think — people&rsquo;s weeks change.
-          </p>
-          <Link className="btn quiet full" href="/dashboard" style={{ marginBottom: 6 }}>
-            My workshops
-          </Link>
-          <ReleaseControl label="Leave the waitlist" prompt="Come off the waitlist? You’d go to the back of it if you change your mind." />
         </div>
       );
     }
@@ -531,7 +503,6 @@ function WorkshopDetail({ workshops, loadError }) {
     setConfirmRelease(false);
     setReleased(true);
     setPanelMode('default');
-    setRaceNotice(false);
     toast('Seat released. Change your mind and you can take it again.');
   }
 
@@ -572,7 +543,7 @@ function WorkshopDetail({ workshops, loadError }) {
             <div>
               <div className="whero-chips">
                 <span className="eyebrow bare">{w.cohortLabel || 'Cohort'} · Coming up</span>
-                {mine && <StatusChip status={mine.status} />}
+                {mine && <StatusChip status={mine.status === 'WAITLISTED' ? 'REGISTERED' : mine.status} />}
               </div>
               <h1>{w.title}</h1>
               <p className="summary">{w.summary}</p>
@@ -771,7 +742,7 @@ function WorkshopDetail({ workshops, loadError }) {
     ? {
         ATTENDED: ['att', 'Been there'],
         REGISTERED: ['att', 'Been there'],
-        WAITLISTED: ['wait', 'You were waitlisted'],
+        WAITLISTED: ['att', 'Been there'],
       }[mine.status]
     : null;
 
@@ -938,7 +909,7 @@ function WorkshopDetail({ workshops, loadError }) {
                 <DayBox w={nextUp} />
                 {seats[nextUp.slug] ? (
                   <Link className="btn full" href={workshopUrl(nextUp)}>
-                    You&rsquo;re {seats[nextUp.slug].status === 'WAITLISTED' ? 'on the list' : 'in'} →
+                    You&rsquo;re in →
                   </Link>
                 ) : (
                   <Link className="btn full go" href={enrollUrl(nextUp)}>

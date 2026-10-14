@@ -29,7 +29,9 @@ const STATUS = {
 const SEAT = {
   REGISTERED: ['Registered', 'Been there'],
   ATTENDED: ['Registered', 'Been there'],
-  WAITLISTED: ['Waitlisted', 'Waitlisted'],
+  // No waitlist any more: an upcoming seat on an old WAITLISTED row is a
+  // registered one. Past cohorts keep the record of what it was.
+  WAITLISTED: ['Registered', 'Waitlisted'],
 };
 
 export function WorkshopCard({ w, mine }) {
@@ -50,7 +52,7 @@ export function WorkshopCard({ w, mine }) {
   let cta;
   if (!past) {
     cta = mine
-      ? [url, mine.status === 'WAITLISTED' ? 'You’re on the list' : 'You’re in']
+      ? [url, 'You’re in']
       : [enrollUrl(w), 'Grab a seat'];
   } else if (recordingReady(w)) {
     cta = [`${url}#recording`, 'Watch recording'];
@@ -128,7 +130,7 @@ export function FeatureCard({ w, mine }) {
 
   const cta = mine ? (
     <Link className="btn lg" href={url}>
-      You&rsquo;re {mine.status === 'WAITLISTED' ? 'on the list' : 'in'}
+      You&rsquo;re in
     </Link>
   ) : (
     <Link className="btn lg go" href={enrollUrl(w)}>

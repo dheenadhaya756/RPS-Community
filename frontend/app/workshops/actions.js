@@ -56,15 +56,29 @@ async function takeSeat(admin, { userId, userEmail, slug, name, email, whatsapp,
 
   const { data: existing } = await read();
   if (existing) {
-    if (existing.status !== "WAITLISTED") return { row: existing, isNew: false };
-    const { data: moved } = await admin
+    if (existing.status === "REGISTERED" || existing.status === "ATTENDED") {
+      return { row: existing, isNew: false };
+    }
+    // Declined by the team: registering again doesn't overturn that.
+    if (existing.status === "REJECTED") return { rejected: true };
+
+    /* WAITLISTED (from before there was no waitlist) or CANCELLED (taken off
+       the list, then registered again): they're asking to be in, so they are
+       — with today's details, and the "you're in" email as for anyone new. */
+    const { data: back } = await admin
       .from("enrollments")
-      .update({ status: "REGISTERED", updated_at: new Date().toISOString() })
+      .update({
+        status: "REGISTERED",
+        name: name.trim(),
+        email,
+        whatsapp: whatsapp.trim(),
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", existing.id)
-      .eq("status", "WAITLISTED")
+      .eq("status", existing.status)
       .select("*")
       .maybeSingle();
-    return { row: moved || { ...existing, status: "REGISTERED" }, isNew: !!moved };
+    return { row: back || { ...existing, status: "REGISTERED" }, isNew: !!back };
   }
 
   const { data: seatRow } = await admin.from("workshop_seats").select("slug").eq("slug", slug).maybeSingle();
@@ -207,6 +221,12 @@ export async function enrollInWorkshop(input) {
   }
 
   const res = await takeSeat(admin, { userId: user.id, userEmail: user.email, slug, name, email, whatsapp, workshop: w });
+  if (res.rejected) {
+    return {
+      ok: false,
+      error: "We couldn’t register you for this one. Write to cohorts@rockpaperscissors.studio if that’s a mistake.",
+    };
+  }
   if (res.error) {
     console.error(`[enroll] Seat for ${slug} failed: ${res.error}`);
     return { ok: false, error: COULD_NOT };
