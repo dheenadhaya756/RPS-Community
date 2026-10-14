@@ -4,6 +4,9 @@ const FAVICON =
   "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23FF630B'/><path d='M9 22V10h7a4 4 0 0 1 0 8h-3l5 4' stroke='white' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>";
 
 export const metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://cohorts.rockpaperscissors.studio"
+  ),
   title: "RPS Cohorts — free live design workshops",
   description:
     "Free live design workshops. We build real client work in front of you, you build along.",
