@@ -27,6 +27,7 @@ export default function Page() {
 function intentCopy(next) {
   if (/action=enroll/.test(next)) return 'Saving your seat. Two taps, you’re back here.';
   if (/#recording|[?&]res=/.test(next)) return 'It’s free — we just like knowing who’s watching.';
+  if (/^\/review/.test(next)) return 'Log in and your portfolio review starts right away.';
   return 'For seats, recordings, and files.';
 }
 

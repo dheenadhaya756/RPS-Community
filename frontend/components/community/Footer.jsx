@@ -24,6 +24,7 @@ export default function Footer() {
             <div className="links">
               <Link href="/workshops#upcoming">Upcoming</Link>
               <Link href="/workshops#past">Past &amp; recordings</Link>
+              <Link href="/review">Portfolio review</Link>
             </div>
           </div>
           <div>

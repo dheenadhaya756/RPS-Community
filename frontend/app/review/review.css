@@ -1,0 +1,640 @@
+/* =============================================================================
+   /review — the portfolio review page.
+   Prefixed `rv-` and written against the community.css tokens.
+   ============================================================================= */
+
+/* ---------------------------------------------------------------- hero */
+.rv-hero{
+  padding:clamp(56px,9vw,120px) 0 clamp(40px,6vw,72px);
+  text-align:center;
+}
+.rv-hero .wrap{ display:flex; flex-direction:column; align-items:center; }
+.rv-hero h1{ margin-top:22px; max-width:14ch; }
+.rv-hero .lede{ margin:22px auto 0; max-width:46ch; }
+
+/* ---------------------------------------------------------------- link box */
+/* One column, one gap: the box, the hint, the optional field, in that order. */
+.rv-box{ width:min(640px,100%); margin-top:40px; display:flex; flex-direction:column; align-items:stretch; gap:12px; }
+.rv-box-row{
+  display:flex; gap:8px; padding:8px;
+  background:var(--card); border:1.5px solid var(--line-2); border-radius:calc(var(--radius-btn) + 8px);
+  box-shadow:var(--shadow-lg);
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+:root[data-theme="dark"] .rv-box-row{
+  background-color:rgba(16,11,8,.78); background-image:var(--sheen);
+  border-color:var(--glass-line-2);
+  backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur);
+  box-shadow:var(--gloss-edge), var(--shadow-lg);
+}
+.rv-box-row:focus-within{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft), var(--shadow-lg); }
+.rv-box-row.has-err{ border-color:var(--hold); }
+.rv-box-input{ position:relative; flex:1 1 auto; min-width:0; display:flex; }
+.rv-box-input input{
+  flex:1 1 auto; width:100%; min-width:0; min-height:56px; padding:0 18px;
+  background:transparent; border:0; outline:none;
+  font:inherit; font-size:1.05rem; color:var(--ink);
+}
+/* The rotating prompt, laid over the empty input. Clicks fall through to it. */
+.rv-prompt{
+  position:absolute; left:18px; right:12px; top:50%; transform:translateY(-50%);
+  pointer-events:none; text-align:left;
+  font-size:1.05rem; color:var(--faint);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  animation:rvPrompt 3.5s var(--ease) both;
+}
+@keyframes rvPrompt{
+  0%  { opacity:0; transform:translateY(calc(-50% + 8px)); }
+  10% { opacity:1; transform:translateY(-50%); }
+  88% { opacity:1; transform:translateY(-50%); }
+  100%{ opacity:0; transform:translateY(calc(-50% - 8px)); }
+}
+/* The site-wide reduced-motion rule shortens animations to nothing, which would
+   park this on its last frame — fully faded out. Swap the text without motion. */
+@media (prefers-reduced-motion: reduce){ .rv-prompt{ animation:none; } }
+.rv-box-row .btn{ flex:none; }
+.rv-box-hint{ margin:0; font-size:.88rem; color:var(--faint); }
+.rv-box-hint.err{ color:var(--hold-ink); font-weight:600; }
+.rv-sample-link{ margin-top:28px; }
+
+/* After sending */
+.rv-done{
+  width:min(640px,100%); margin-top:40px; padding:24px 28px;
+  border-radius:calc(var(--radius-btn) + 8px);
+  background:var(--accent-soft); border:1px solid var(--accent);
+}
+.rv-done-k{
+  display:inline-flex; align-items:center; gap:8px;
+  font-size:.78rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
+}
+.rv-done-k::before{ content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+.rv-done p{ margin:12px auto 4px; max-width:46ch; color:var(--ink-2); line-height:1.6; overflow-wrap:anywhere; }
+.rv-done b{ color:var(--heading); }
+
+/* ---------------------------------------------------------------- steps */
+.rv-steps{
+  list-style:none; padding:0; margin:44px 0 0;
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px;
+}
+.rv-steps .card h3{ margin-top:20px; }
+
+/* ---------------------------------------------------------------- 1:1 */
+.rv-book{
+  display:flex; align-items:center; justify-content:space-between; gap:24px 40px; flex-wrap:wrap;
+  margin-top:18px; padding:clamp(26px,3.5vw,40px);
+  border-radius:var(--radius-xl); background:var(--deep);
+}
+.rv-book h3{ color:#fff; }
+.rv-book p{ margin:8px 0 0; color:rgba(255,255,255,.78); max-width:48ch; }
+
+/* =============================================================================
+   /review/sample — the sample report
+
+   Built on the page's own devices: the --deep panel for the verdict, the
+   bento papers for the four pillars, Syne at full size for every number that
+   matters. Levels are drawn as three notches, never as a 1–10 bar, because
+   the rubric scores on anchored levels.
+   ============================================================================= */
+.rv-sample{ padding-bottom:clamp(48px,6vw,80px); }
+.rv-sample-head{ margin-top:22px; }
+.rv-sample-head h1{ font-size:clamp(2.1rem,4.2vw,3.2rem); max-width:18ch; }
+.rv-sample-head .lede{ margin-top:16px; }
+
+/* ---------------------------------------------------------------- shared */
+/* Level meter: three notches. --f on each notch is how full it is, 0..1. */
+.rv-meter{ display:inline-flex; gap:3px; flex:none; color:var(--brand); }
+.rv-meter i{
+  position:relative; display:block; width:16px; height:8px; border-radius:3px; overflow:hidden;
+  background:var(--line-2);
+}
+.rv-meter i::after{
+  content:""; position:absolute; inset:0 auto 0 0; width:calc(var(--f) * 100%);
+  background:currentColor;
+}
+
+.rv-rsec{ margin-top:clamp(52px,6vw,80px); }
+.rv-rsec h2{ font-size:clamp(1.6rem,2.8vw,2.2rem); }
+.rv-rsec-sub{ margin:10px 0 0; font-size:1rem; line-height:1.6; max-width:62ch; }
+
+/* ---------------------------------------------------------------- verdict */
+.rv-verdict{
+  position:relative; overflow:hidden; isolation:isolate;
+  margin-top:36px; padding:clamp(26px,4.2vw,52px);
+  border-radius:var(--radius-xl); color:#fff;
+  background-color:var(--deep);
+  background-image:
+    radial-gradient(90% 120% at 100% 0%, rgba(255,99,11,.34), transparent 62%),
+    radial-gradient(70% 80% at 0% 100%, rgba(255,132,56,.12), transparent 70%);
+  box-shadow:var(--shadow-lg);
+}
+:root[data-theme="dark"] .rv-verdict{
+  background-color:rgba(16,11,8,.8); background-image:var(--sheen);
+  border:1px solid var(--glass-line-2);
+  backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur);
+  box-shadow:var(--gloss-edge), var(--shadow-lg);
+}
+.rv-verdict-top{ display:flex; align-items:flex-end; flex-wrap:wrap; gap:18px 40px; }
+.rv-score{ margin:0; display:flex; align-items:baseline; gap:10px; line-height:.82; color:#fff; }
+.rv-score b{
+  font-family:var(--font-display); font-weight:700;
+  font-size:clamp(4.6rem,11vw,6rem); letter-spacing:-.04em; font-variant-numeric:tabular-nums;
+}
+.rv-score span{ font-size:1rem; font-weight:600; color:rgba(255,255,255,.72); }
+.rv-verdict-copy{ flex:1 1 340px; min-width:0; padding-bottom:4px; }
+.rv-verdict-copy h2{ color:#fff; font-size:clamp(1.9rem,3.6vw,2.7rem); }
+.rv-verdict-copy p{ margin:10px 0 0; max-width:54ch; font-size:1.02rem; line-height:1.55; color:rgba(255,255,255,.82); }
+.rv-verdict-copy p b{ color:#fff; }
+
+/* The ladder: the four bands to scale, the score, and where the fixes lead */
+.rv-ladder{ margin-top:clamp(30px,4vw,44px); }
+.rv-ladder-pins{ position:relative; height:30px; }
+.rv-pin{
+  --tx:0;
+  position:absolute; bottom:8px; transform:translateX(var(--tx));
+  white-space:nowrap; font-size:.8rem; font-weight:600; line-height:1; color:rgba(255,255,255,.78);
+}
+.rv-pin b{ font-family:var(--font-display); font-size:1.08rem; color:#fff; font-variant-numeric:tabular-nums; }
+.rv-pin::after{
+  content:""; position:absolute; top:-2px; bottom:-30px; width:2px; border-radius:2px; background:#fff;
+}
+.rv-pin.now{ --tx:-100%; padding-right:10px; }
+.rv-pin.now::after{ right:-1px; }
+.rv-pin.next{ padding-left:10px; color:rgba(255,226,204,.86); }
+.rv-pin.next b{ color:#FFE0CC; }
+.rv-pin.next::after{ left:-1px; background:#FFB27A; }
+
+.rv-ladder-track{
+  position:relative; height:14px; border-radius:99px; overflow:hidden;
+  background:rgba(255,255,255,.14);
+}
+.rv-ladder-fill{
+  position:absolute; inset:0 auto 0 0;
+  background:linear-gradient(90deg, var(--brand), var(--brand-2));
+}
+.rv-ladder-gain{
+  position:absolute; top:0; bottom:0;
+  background:repeating-linear-gradient(135deg, rgba(255,178,122,.9) 0 4px, rgba(255,178,122,.28) 4px 8px);
+}
+.rv-ladder-tick{ position:absolute; top:0; bottom:0; width:2px; margin-left:-1px; background:rgba(20,8,2,.45); }
+.rv-ladder-bands{ list-style:none; margin:12px 0 0; padding:0; display:flex; }
+.rv-ladder-bands li{
+  min-width:0; padding-right:8px; display:flex; flex-direction:column; gap:3px;
+  font-size:.78rem; line-height:1.2; color:rgba(255,255,255,.72);
+}
+.rv-ladder-bands li + li{ padding-left:8px; }
+.rv-ladder-bands li b{ font-weight:700; color:rgba(255,255,255,.84); }
+.rv-ladder-bands li.is-here b{ color:#fff; text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:4px; text-decoration-color:var(--brand-2); }
+.rv-short{ display:none; }
+
+/* The one authored moment: the bar fills to the score, then the fixes
+   extend it. Without motion it simply shows the end state. */
+@media (prefers-reduced-motion: no-preference){
+  .rv-ladder-fill{ transform-origin:left center; animation:rvGrow 1.2s cubic-bezier(.16,1,.3,1) .2s both; }
+  .rv-ladder-gain{ animation:rvGain .7s cubic-bezier(.16,1,.3,1) 1.2s both; }
+  .rv-pin.now{ animation:rvPin .5s cubic-bezier(.16,1,.3,1) .95s both; }
+  .rv-pin.next{ animation:rvPin .5s cubic-bezier(.16,1,.3,1) 1.55s both; }
+}
+@keyframes rvGrow{ from{ transform:scaleX(0); } }
+@keyframes rvGain{ from{ clip-path:inset(0 100% 0 0); } }
+@keyframes rvPin{ from{ opacity:0; transform:translate(var(--tx), 6px); } }
+
+.rv-verdict-meta{
+  margin:clamp(26px,3.4vw,36px) 0 0; padding-top:20px; border-top:1px solid rgba(255,255,255,.18);
+  display:grid; grid-template-columns:repeat(4,auto); justify-content:space-between; gap:14px 28px;
+}
+.rv-verdict-meta dt{ font-size:.76rem; font-weight:600; color:rgba(255,255,255,.7); }
+.rv-verdict-meta dd{ margin:4px 0 0; font-size:.9rem; font-weight:600; line-height:1.35; color:#fff; overflow-wrap:anywhere; }
+
+/* ---------------------------------------------------------------- pillars */
+.bento.rv-pillars{ margin-top:28px; }
+.rv-pillars .bt{ min-height:0; justify-content:flex-start; gap:22px; }
+.rv-pillars .bt:hover{ transform:none; }
+.rv-pillars .bt.wide{ grid-column:1 / -1; align-items:center; gap:22px 48px; padding:clamp(24px,3vw,34px); }
+.rv-pillars .bt.wide .bt-copy{ flex:1 1 0; }
+.rv-pillars .bt.wide .rv-dims{ flex:1.15 1 0; margin:0; }
+.rv-pillar-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.rv-pillar h3{ font-size:1.3rem; max-width:none; }
+.rv-pillars .bt p.rv-pillar-ask{ margin:6px 0 0; max-width:34ch; font-size:.86rem; font-weight:600; line-height:1.4; opacity:.7; }
+.rv-pillars .bt p.rv-pillar-n{ margin:0; opacity:1; max-width:none; flex:none; white-space:nowrap; display:flex; align-items:baseline; gap:5px; line-height:.86; }
+.rv-pillar-n b{
+  font-family:var(--font-display); font-weight:700;
+  font-size:clamp(2.6rem,4.4vw,3.4rem); letter-spacing:-.04em; font-variant-numeric:tabular-nums;
+}
+.rv-pillar-n span{ font-size:.9rem; font-weight:700; opacity:.66; }
+.rv-pillars .bt.wide .rv-pillar-n b{ font-size:clamp(3rem,6vw,4.4rem); }
+.rv-pillars .bt p.rv-pillar-why{ margin:14px 0 0; max-width:42ch; font-size:.96rem; line-height:1.5; opacity:.84; }
+
+.rv-dims{ list-style:none; margin:auto 0 0; padding:0; display:grid; gap:6px; }
+.rv-dims li{
+  display:grid; grid-template-columns:minmax(0,1fr) auto 86px; align-items:center; gap:12px;
+  padding:10px 12px; border-radius:10px; background:var(--bt-panel);
+  font-size:.86rem; font-weight:650; line-height:1.25;
+}
+.rv-dims .rv-meter{ color:inherit; }
+.rv-dims .rv-meter i{ width:14px; background:color-mix(in srgb, currentColor 17%, transparent); }
+.rv-dims-word{ text-align:right; font-size:.8rem; font-weight:700; }
+
+/* ---------------------------------------------------------------- fixes */
+.rv-fixes{ list-style:none; padding:0; margin:28px 0 0; display:grid; gap:14px; }
+.rv-fix{
+  display:grid; grid-template-columns:112px minmax(0,1fr); gap:10px 28px;
+  padding:clamp(20px,2.8vw,32px);
+  border-radius:var(--radius-xl); background:var(--card); border:1px solid var(--line);
+  box-shadow:var(--shadow-md);
+}
+.rv-fix-lift{ margin:0; display:flex; flex-direction:column; line-height:.86; color:var(--accent); }
+.rv-fix-lift b{
+  font-family:var(--font-display); font-weight:700;
+  font-size:clamp(2.8rem,5vw,3.8rem); letter-spacing:-.04em; font-variant-numeric:tabular-nums;
+}
+.rv-fix-lift span{ margin-top:8px; font-size:.82rem; font-weight:700; color:var(--faint); }
+.rv-fix-body{ min-width:0; }
+.rv-fix-body h3{ font-size:clamp(1.25rem,2vw,1.5rem); }
+.rv-fix-where{ margin:6px 0 0; font-size:.86rem; font-weight:600; color:var(--faint); }
+.rv-fix-pair{ margin-top:18px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.rv-saw, .rv-try{ padding:16px 18px; border-radius:var(--radius); }
+.rv-saw{ background:var(--paper-2); }
+.rv-try{ background:var(--accent-soft); box-shadow:inset 0 0 0 1px var(--tint); }
+.rv-saw > span, .rv-try > span{ font-size:.76rem; font-weight:700; color:var(--faint); }
+.rv-try > span{ color:var(--accent); }
+.rv-saw p, .rv-try p{ margin:6px 0 0; font-size:.96rem; line-height:1.55; }
+.rv-try p{ color:var(--ink); font-weight:500; }
+
+/* ---------------------------------------------------------------- case studies */
+.rv-cases{ list-style:none; padding:0; margin:28px 0 0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.rv-case{
+  display:flex; flex-direction:column; min-width:0;
+  padding:clamp(20px,2.4vw,26px);
+  border-radius:var(--radius-xl); background:var(--card); border:1px solid var(--line);
+  box-shadow:var(--shadow-sm);
+}
+.rv-case.lead{ border-color:var(--tint-2); box-shadow:var(--shadow-md); }
+.rv-case-head{ display:flex; align-items:center; gap:10px; }
+.rv-case-head .num{ flex:none; width:34px; height:34px; }
+.rv-case.lead .num{ background:var(--deep); color:#fff; }
+.rv-case-kind{ font-size:.8rem; font-weight:600; line-height:1.3; color:var(--faint); }
+.rv-case.lead .rv-case-kind{ color:var(--accent); font-weight:700; }
+.rv-case h3{ margin-top:16px; font-size:clamp(1.12rem,1.6vw,1.25rem); }
+.rv-case-notes{ margin:16px 0 0; display:grid; gap:12px; }
+.rv-case-notes dt{ font-size:.76rem; font-weight:700; color:var(--faint); }
+.rv-case-notes dd{ margin:3px 0 0; font-size:.94rem; line-height:1.55; color:var(--ink-2); }
+.rv-case-notes .is-fix dt{ color:var(--accent); }
+.rv-case-notes .is-fix dd{ color:var(--heading); font-weight:600; }
+
+/* ---------------------------------------------------------------- working */
+.rv-strengths{ list-style:none; padding:0; margin:20px 0 0; display:grid; gap:4px; }
+.rv-strengths li{
+  display:grid; grid-template-columns:22px minmax(0,1fr); gap:10px; align-items:start;
+  padding:12px 0; border-top:1px solid var(--line);
+  font-size:1rem; line-height:1.5; color:var(--ink-2);
+}
+.rv-strengths li:first-child{ border-top:0; }
+.rv-strengths svg{
+  width:18px; height:18px; margin-top:3px;
+  fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+}
+
+.rv-limits{ margin-top:22px; padding:16px 20px; border-radius:var(--radius-l); border:1px dashed var(--line-2); }
+.rv-limits b{ font-size:.84rem; color:var(--hold-ink); }
+.rv-limits p{ margin:4px 0 0; font-size:.93rem; line-height:1.5; }
+
+/* ---------------------------------------------------------------- guidance
+   The way from the report to a person. The nudge rides under the fixes; the
+   panel is the last thing in every report and the strongest surface on it. */
+.rv-nudge{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px 24px;
+  margin-top:14px; padding:18px 22px;
+  border-radius:var(--radius-l); background:var(--accent-soft); border:1px solid var(--tint);
+}
+.rv-nudge p{ margin:0; flex:1 1 360px; font-size:.98rem; line-height:1.5; color:var(--ink-2); }
+.rv-nudge b{ color:var(--heading); }
+.rv-nudge .btn{ flex:none; }
+
+.rv-guide{
+  position:relative; overflow:hidden; isolation:isolate;
+  margin-top:clamp(56px,7vw,88px); padding:clamp(28px,4.4vw,56px);
+  display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); align-items:center; gap:32px 56px;
+  border-radius:var(--radius-xl); color:#fff;
+  background-color:var(--deep);
+  background-image:
+    radial-gradient(80% 110% at 100% 100%, rgba(255,99,11,.36), transparent 64%),
+    radial-gradient(60% 80% at 0% 0%, rgba(255,132,56,.12), transparent 70%);
+  box-shadow:var(--shadow-lg);
+  scroll-margin-top:calc(var(--nav-h) + 24px);
+}
+:root[data-theme="dark"] .rv-guide{
+  background-color:#5A1A06; background-image:var(--ember-soft), var(--sheen);
+  box-shadow:var(--gloss-edge), var(--shadow-lg);
+}
+.rv-guide-copy h2{ color:#fff; font-size:clamp(1.9rem,3.6vw,2.8rem); max-width:16ch; }
+.rv-guide-copy p{ margin:16px 0 0; max-width:44ch; font-size:1.04rem; line-height:1.6; color:rgba(255,255,255,.82); }
+.rv-guide-copy .btn{ margin-top:28px; }
+.rv-guide-list{
+  padding:24px 26px; border-radius:var(--radius-l);
+  background:rgba(255,255,255,.08); box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);
+}
+.rv-guide-list h3{ color:#fff; font-size:1.1rem; }
+.rv-guide-list ul{ list-style:none; padding:0; margin:16px 0 0; display:grid; gap:12px; }
+.rv-guide-list li{
+  display:grid; grid-template-columns:20px minmax(0,1fr); gap:10px; align-items:start;
+  font-size:.98rem; font-weight:600; line-height:1.45; color:#fff;
+}
+.rv-guide-list svg{
+  width:18px; height:18px; margin-top:2px;
+  fill:none; stroke:#FFB27A; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+}
+
+/* Sample page only: the way to a report of your own. */
+.rv-yours{ margin-top:clamp(48px,6vw,72px); text-align:center; }
+.rv-yours h2{ font-size:clamp(1.5rem,2.6vw,2rem); max-width:22ch; margin-inline:auto; }
+.rv-yours p{ margin:10px auto 0; }
+.rv-yours .btn{ margin-top:22px; }
+
+/* ---------------------------------------------------------------- responsive */
+@media (max-width:900px){
+  .bento.rv-pillars{ grid-template-columns:1fr; }
+  .rv-pillars .bt.wide{ flex-direction:column; align-items:stretch; }
+  .rv-pillars .bt.wide .rv-dims{ flex:none; }
+  .rv-verdict-meta{ grid-template-columns:repeat(2,minmax(0,1fr)); justify-content:stretch; }
+}
+@media (max-width:860px){
+  .rv-steps{ grid-template-columns:1fr; }
+  .rv-cases{ grid-template-columns:1fr; }
+  .rv-guide{ grid-template-columns:1fr; }
+}
+@media (max-width:600px){
+  .rv-box-row{ flex-direction:column; padding:8px; }
+  .rv-box-input input{ min-height:52px; text-align:center; }
+  .rv-prompt{ text-align:center; left:12px; }
+  .rv-box-row .btn, .rv-book .btn{ width:100%; }
+  .rv-guide .btn, .rv-nudge .btn{ width:100%; }
+
+  /* The narrow bands can't hold their names at phone width. The headline
+     already names the band you're in, so only that one keeps its label and
+     the rest show their threshold. */
+  .rv-pin span, .rv-long{ display:none; }
+  .rv-short{ display:inline; }
+  .rv-ladder-bands li{ padding-right:4px; font-size:.72rem; }
+  .rv-ladder-bands li + li{ padding-left:5px; }
+  .rv-ladder-bands li{ justify-content:flex-end; }
+  .rv-ladder-bands li:not(.is-here) b{ display:none; }
+  .rv-ladder-bands li.is-here b{ white-space:nowrap; }
+  .rv-verdict-meta div:first-child{ grid-column:1 / -1; }
+
+  .rv-fix{ grid-template-columns:1fr; }
+  .rv-fix-lift{ flex-direction:row; align-items:baseline; gap:8px; }
+  .rv-fix-lift span{ margin-top:0; }
+  .rv-fix-pair{ grid-template-columns:1fr; }
+  .rv-dims li{ grid-template-columns:minmax(0,1fr) auto 76px; gap:10px; }
+  .rv-guide-list{ padding:20px; }
+}
+
+/* ---------------------------------------------------------------- in progress
+   /review/report/[id] while the review runs: the stages as a checklist, the
+   current one turning. */
+.rv-progress{
+  width:min(640px,100%); margin-top:36px; padding:clamp(22px,3.4vw,34px);
+  border-radius:var(--radius-xl); background:var(--card);
+  border:1px solid var(--line); box-shadow:var(--shadow-md);
+}
+.rv-progress ol{ list-style:none; margin:0; padding:0; display:grid; gap:16px; }
+.rv-progress li{
+  display:grid; grid-template-columns:22px minmax(0,1fr); align-items:center; gap:14px;
+  font-weight:600; line-height:1.4; color:var(--faint);
+  transition:color var(--dur) var(--ease);
+}
+.rv-progress li > i{
+  width:22px; height:22px; border-radius:50%; border:2px solid var(--line-2);
+  display:grid; place-items:center;
+}
+.rv-progress li.is-done{ color:var(--ink-2); }
+.rv-progress li.is-done > i{ background:var(--accent); border-color:var(--accent); }
+.rv-progress li.is-done > i::after{
+  content:""; width:9px; height:5px; margin-top:-2px;
+  border:solid var(--on-accent); border-width:0 0 2px 2px; transform:rotate(-45deg);
+}
+.rv-progress li.is-now{ color:var(--heading); }
+.rv-progress li.is-now > i{ border-color:var(--tint); border-top-color:var(--accent); animation:rv-turn .9s linear infinite; }
+@keyframes rv-turn{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce){
+  .rv-progress li.is-now > i{ animation:none; border-color:var(--accent); }
+}
+.rv-progress-foot{ margin:22px 0 0; padding-top:18px; border-top:1px solid var(--line); font-size:.9rem; color:var(--faint); }
+
+/* One review per account: once it's used, this card takes the link box's place. */
+.rv-used{
+  padding:clamp(20px,3vw,28px);
+  background:var(--card); border:1.5px solid var(--line-2); border-radius:calc(var(--radius-btn) + 8px);
+  box-shadow:var(--shadow-lg);
+}
+.rv-used-title{ margin:0; font-family:var(--font-display); font-weight:700; font-size:1.25rem; color:var(--heading); letter-spacing:-.02em; }
+.rv-used-body{ margin:10px 0 0; color:var(--muted); line-height:1.6; }
+.rv-used-body b{ color:var(--ink-2); }
+.rv-used-actions{ display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-top:22px; }
+
+
+
+/* Download PDF */
+.rv-report-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:0 0 24px; }
+.rv-report-tip{ font-size:.84rem; color:var(--faint); }
+
+/* The report as a PDF: just the report, in its own colours. */
+
+
+.rv-used-dev{ margin:18px 0 0; font-size:.82rem; line-height:1.5; color:var(--faint); }
+
+
+/* ---------------------------------------------- What we looked at */
+.rv-shot{ margin:0; }
+.rv-shot img{
+  display:block; width:100%; height:auto; border-radius:var(--radius);
+  border:1px solid var(--line-2); background:var(--card);
+}
+.rv-shot figcaption{ margin-top:8px; font-size:.84rem; color:var(--muted); }
+.rv-shot.lead{ margin-top:4px; }
+.rv-shot-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:22px; }
+.rv-shot.is-case figcaption{ color:var(--ink-2); font-weight:600; }
+@media (max-width:760px){ .rv-shot-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+/* ---------------------------------------------- the A4 report
+   "Download PDF" prints the report page. On paper it is just the report: the
+   RPS header on page one, the site's dark colours edge to edge (the page
+   margins too), and a footer with page numbers in the margin of every page. */
+.rv-print-head{ display:none; }
+.rv-pin.now.flip{ --tx:0; padding-right:0; padding-left:10px; }
+.rv-pin.now.flip::after{ right:auto; left:-1px; }
+
+@page{
+  size:A4;
+  margin:14mm 12mm 16mm;
+  background:#150d0a;
+  @bottom-center{
+    content:"RPS Cohorts  ·  cohorts.rockpaperscissors.studio  ·  Page " counter(page) " of " counter(pages);
+    font-family:Helvetica, Arial, sans-serif; font-size:7.5pt; color:#9b8a80;
+  }
+}
+@media print{
+  html, body{
+    background:#150d0a !important;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .page, main, .shell{ background:transparent !important; }
+  nav.nav, footer.site, #cookiebar, .backlink, .rv-report-actions, .rv-nudge .btn, .rv-guide .btn{ display:none !important; }
+  .reveal{ opacity:1 !important; transform:none !important; }
+  .wrap{ width:auto !important; max-width:none !important; padding-left:0 !important; padding-right:0 !important; }
+  .rv-sample{ padding-top:0 !important; padding-bottom:0 !important; }
+  .rv-print-head{
+    display:flex; align-items:center; gap:14px; padding:0 0 14px; margin:0 0 18px;
+    border-bottom:1px solid var(--line-2);
+  }
+  .rv-print-head img{ height:34px; width:auto; }
+  .rv-print-head b{ display:block; font-family:var(--font-display); font-size:1.05rem; color:var(--heading); }
+  .rv-print-head span{ display:block; font-size:.8rem; color:var(--muted); }
+  .rv-sample-head h1{ font-size:1.9rem !important; }
+  .rv-rsec{ margin-top:28px !important; }
+  .rv-rsec h2{ break-after:avoid; }
+  .rv-shot-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  /* The screenshots open a page of their own rather than leaving the heading
+     stranded at the foot of page one. */
+  .rv-shots{ break-before:page; margin-top:0 !important; }
+  /* "Fix these first" is what they came for: it starts its own page too. */
+  section[aria-labelledby="rv-fixes-h"]{ break-before:page; margin-top:0 !important; }
+  /* Small things never split across pages; whole sections are free to flow. */
+  .rv-verdict, .rv-shot, .rv-case, .rv-pillar, .rv-fix, .rv-strengths li, .rv-limits, .rv-guide{ break-inside:avoid; }
+}
+
+/* The optional Behance case study: the same glass row as the main box, a step quieter. */
+.rv-extra-toggle{ align-self:center; font-size:.9rem; }
+.rv-box-row.is-extra{ box-shadow:none; }
+.rv-box-row.is-extra .rv-box-input input{ min-height:46px; font-size:.98rem; }
+.rv-box-row.is-extra .btn{ align-self:center; }
+
+/* Phones: the used card's buttons stack full width, the same size. */
+@media (max-width:600px){
+  .rv-used-actions{ flex-direction:column; align-items:stretch; }
+  .rv-used-actions .btn{ width:100%; justify-content:center; }
+  .rv-box-row.is-extra{ flex-direction:row; }
+  .rv-box-row.is-extra .btn{ width:auto; }
+}
+
+/* ---------------------------------------------- /review/book — 1:1 booking */
+.rv-bk{ padding-bottom:clamp(56px,7vw,96px); }
+.rv-bk-head{ margin-top:22px; max-width:46rem; }
+.rv-bk-head h1{ margin-top:14px; font-size:clamp(2.1rem,4.2vw,3.2rem); max-width:18ch; }
+.rv-bk-head .lede{ margin-top:16px; }
+.rv-bk-layout{
+  display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:24px;
+  align-items:start; margin-top:36px;
+}
+.rv-bk-form, .rv-bk-done{ margin:0; display:flex; flex-direction:column; gap:4px; }
+.rv-bk-form .kicker{ margin-bottom:14px; }
+.rv-bk-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:16px; }
+.rv-bk-submit{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:6px; }
+.rv-bk-submit .btn{ margin-top:0; }
+.rv-bk-submit .micro{ margin:0; }
+.rv-bk-done p{ margin:6px 0 0; color:var(--ink-2); line-height:1.6; }
+.rv-bk-actions{ display:flex; flex-wrap:wrap; gap:12px; margin-top:8px; }
+
+.rv-bk-side{
+  display:flex; flex-direction:column; gap:14px; padding:clamp(22px,3vw,28px);
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius-l);
+}
+.rv-bk-price{ display:flex; align-items:baseline; gap:10px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+.rv-bk-price b{ font-family:var(--font-display); font-size:2.4rem; color:var(--heading); letter-spacing:-.03em; line-height:1; }
+.rv-bk-price span{ font-size:.88rem; color:var(--muted); }
+.rv-bk-side h3{ margin:6px 0 0; font-size:1rem; color:var(--heading); }
+.rv-bk-list, .rv-bk-steps{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.rv-bk-list li{ display:flex; gap:10px; align-items:flex-start; font-size:.93rem; color:var(--ink-2); line-height:1.5; }
+.rv-bk-list svg{ width:16px; height:16px; flex:none; margin-top:3px; fill:none; stroke:var(--accent); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.rv-bk-steps li{ display:flex; gap:12px; align-items:flex-start; font-size:.93rem; color:var(--ink-2); line-height:1.5; }
+.rv-bk-steps .num{ flex:none; font-family:var(--font-display); font-weight:700; font-size:.78rem; color:var(--accent); margin-top:2px; }
+
+@media (max-width:900px){
+  .rv-bk-layout{ grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:600px){
+  .rv-bk-grid{ grid-template-columns:minmax(0,1fr); }
+  .rv-bk-submit{ flex-direction:column; align-items:stretch; }
+  .rv-bk-submit .btn{ width:100%; justify-content:center; }
+}
+
+/* ---------------------------------------------- coming soon: "something is cooking" */
+.rv-soon{ padding:clamp(48px,7vw,104px) 0 clamp(56px,8vw,112px); }
+.rv-soon-in{
+  display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:clamp(32px,5vw,72px); align-items:center;
+}
+.rv-soon-copy h1{ margin-top:18px; font-size:clamp(2.4rem,5vw,4rem); max-width:12ch; }
+.rv-soon-hot{
+  background:linear-gradient(90deg, var(--accent), #ffb27a, var(--accent)); background-size:200% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:rvShine 3.2s linear infinite;
+}
+@keyframes rvShine{ to{ background-position:-200% 0; } }
+.rv-soon-copy .lede{ margin-top:18px; max-width:46ch; }
+.rv-soon-clock{ display:flex; flex-wrap:wrap; gap:12px; margin-top:32px; }
+.rv-soon-unit{
+  display:flex; flex-direction:column; align-items:center; gap:6px; min-width:84px; padding:16px 12px 12px;
+  background:var(--card); border:1px solid var(--line-2); border-radius:var(--radius-l);
+}
+.rv-soon-unit b{
+  font-family:var(--font-display); font-size:clamp(2rem,3.6vw,2.7rem); line-height:1;
+  color:var(--heading); font-variant-numeric:tabular-nums; letter-spacing:-.02em;
+}
+.rv-soon-unit small{ font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); }
+.rv-soon-when{ margin:14px 0 0; font-size:.92rem; font-weight:600; color:var(--accent); }
+.rv-soon-cta{ margin-top:26px; }
+.rv-soon-sub{ margin-top:12px; }
+
+/* The reviewer at work on a mock portfolio. */
+.rv-cook{ position:relative; aspect-ratio:4/3.4; }
+.rv-cook-page{
+  position:absolute; inset:6% 10% 6% 4%; display:flex; flex-direction:column; gap:12px; padding:22px; overflow:hidden;
+  background:var(--card); border:1px solid var(--line-2); border-radius:var(--radius-l); box-shadow:var(--shadow-lg);
+}
+.rv-cook-bar{ display:block; height:10px; border-radius:6px; background:var(--line-2); }
+.rv-cook-bar.w40{ width:40%; } .rv-cook-bar.w50{ width:50%; } .rv-cook-bar.w60{ width:60%; height:14px; } .rv-cook-bar.w80{ width:80%; }
+.rv-cook-hero{ display:block; flex:1 1 auto; min-height:70px; border-radius:12px; background:linear-gradient(135deg, var(--accent-soft), transparent); border:1px solid var(--line); }
+.rv-cook-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.rv-cook-card{ display:block; aspect-ratio:4/3; border-radius:10px; background:var(--line); }
+.rv-cook-scan{
+  position:absolute; left:0; right:0; top:-30%; height:30%;
+  background:linear-gradient(180deg, transparent, rgba(255,99,11,.16) 70%, rgba(255,140,60,.55));
+  border-bottom:2px solid var(--accent);
+  animation:rvScan 2.8s cubic-bezier(.65,0,.35,1) infinite;
+}
+@keyframes rvScan{ 0%{ top:-30%; } 100%{ top:100%; } }
+.rv-cook-note{
+  position:absolute; right:0; padding:8px 12px; border-radius:999px; white-space:nowrap;
+  font-size:.78rem; font-weight:700; color:var(--heading);
+  background:var(--card); border:1px solid var(--accent); box-shadow:var(--shadow-md);
+  opacity:0; animation:rvNote 8.4s var(--ease) infinite;
+}
+.rv-cook-note.n1{ top:16%; animation-delay:.6s; }
+.rv-cook-note.n2{ top:42%; animation-delay:3.4s; }
+.rv-cook-note.n3{ top:68%; animation-delay:6.2s; }
+@keyframes rvNote{
+  0%{ opacity:0; transform:translateX(12px); } 6%{ opacity:1; transform:none; }
+  30%{ opacity:1; transform:none; } 36%{ opacity:0; transform:translateX(-6px); } 100%{ opacity:0; }
+}
+.rv-cook-score{
+  position:absolute; left:0; bottom:2%; display:flex; align-items:baseline; gap:6px; padding:12px 16px;
+  background:var(--accent); color:#fff; border-radius:var(--radius-l); box-shadow:var(--shadow-lg);
+  animation:rvBob 3s ease-in-out infinite;
+}
+.rv-cook-score b{ font-family:var(--font-display); font-size:1.8rem; line-height:1; }
+.rv-cook-score small{ font-size:.8rem; opacity:.85; }
+@keyframes rvBob{ 50%{ transform:translateY(-6px); } }
+
+@media (prefers-reduced-motion: reduce){
+  .rv-soon-hot, .rv-cook-scan, .rv-cook-note, .rv-cook-score{ animation:none; }
+  .rv-cook-note{ opacity:1; }
+  .rv-cook-scan{ top:40%; }
+}
+@media (max-width:900px){
+  .rv-soon-in{ grid-template-columns:minmax(0,1fr); }
+  .rv-cook{ max-width:460px; width:100%; }
+}
+@media (max-width:600px){
+  .rv-soon-unit{ min-width:0; flex:1 1 0; }
+  .rv-soon-cta .btn{ width:100%; justify-content:center; }
+}

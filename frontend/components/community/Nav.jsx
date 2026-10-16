@@ -111,6 +111,9 @@ export default function Nav({ active }) {
             <Link href="/workshops" aria-current={active === 'workshops' ? 'page' : undefined}>
               Workshops
             </Link>
+            <Link href="/review" aria-current={active === 'review' ? 'page' : undefined}>
+              Portfolio review
+            </Link>
             {!me && !/^\/signin/.test(pathname || '') && <Link href={loginHref}>Log in</Link>}
           </div>
 

@@ -8,6 +8,7 @@ const TABS = [
   ['registrations', '/admin/registrations', 'Workshop registrations', 'Registrations'],
   ['logins', '/admin/logins', 'Logins'],
   ['hosts', '/admin/hosts', 'Hosts'],
+  ['bookings', '/admin/bookings', '1:1 bookings', 'Bookings'],
 ];
 
 export default function AdminTabs({ current }) {

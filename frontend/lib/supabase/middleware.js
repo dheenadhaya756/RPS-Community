@@ -52,6 +52,8 @@ function isReturnable(target) {
   const path = String(target || "").split(/[?#]/)[0];
   if (!path || path === "/") return false;
   if (PROTECTED.some((p) => matches(path, p))) return true;
+  // The portfolio review's link box is waiting on that page.
+  if (matches(path, "/review")) return true;
   return matches(path, "/workshops") && path !== "/workshops";
 }
 
@@ -116,7 +118,13 @@ export async function updateSession(request) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED.some((p) => matches(pathname, p));
+  // Local testing only (`npm run dev` with REVIEW_DEV_NO_AUTH=1, never a
+  // build): the 1:1 bookings list opens without logging in, like /review.
+  const devOpen =
+    process.env.NODE_ENV !== "production" &&
+    process.env.REVIEW_DEV_NO_AUTH === "1" &&
+    matches(pathname, "/admin/bookings");
+  const isProtected = !devOpen && PROTECTED.some((p) => matches(pathname, p));
   const isAuthRoute = AUTH_ROUTES.some((p) => matches(pathname, p));
 
   if (!user && isProtected) {

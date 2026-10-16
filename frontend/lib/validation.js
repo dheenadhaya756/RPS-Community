@@ -60,6 +60,26 @@ export const enrollmentSchema = z.object({
     }, "That’s not a whole number."),
 });
 
+// Portfolio review — the link box on /review. Who it belongs to comes from the
+// session; the link is the only thing trusted from the browser.
+export const portfolioReviewSchema = z.object({
+  portfolioUrl: safeUrl,
+  // Optional: one case study they add themselves, typically on Behance.
+  caseStudyUrl: z.union([z.literal(""), safeUrl]).optional(),
+});
+
+// A 1:1 mentoring booking from /review/book. Same contact rules as a workshop
+// seat; the slot must be one of the offered ones (checked in the action).
+export const bookingSchema = z.object({
+  name: enrollmentSchema.shape.name,
+  email: enrollmentSchema.shape.email,
+  whatsapp: enrollmentSchema.shape.whatsapp,
+  portfolioUrl: z.union([z.literal(""), safeUrl]).optional(),
+  reportId: z.string().regex(/^([a-f0-9]{32})?$/).optional(),
+  slot: z.string().trim().min(1, "Pick a time that suits you.").max(80),
+  topic: z.string().trim().max(1000, "Keep it under 1,000 characters.").optional(),
+});
+
 export const signupEmailSchema = emailSchema.refine(
   isValidEmail,
   "Enter a valid email address."
