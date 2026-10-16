@@ -34,7 +34,8 @@ def main():
     gemini = os.getenv("GEMINI_API_KEY") or env_value("GEMINI_API_KEY") or env_value("GOOGLE_API_KEY")
     if not gemini:
         sys.exit("No GEMINI_API_KEY in portfolio-auditor/.env")
-    token = os.getenv("AUDITOR_TOKEN") or secrets.token_urlsafe(32)
+    # The same token must be set in Vercel: take it from .env when it is there.
+    token = os.getenv("AUDITOR_TOKEN") or env_value("AUDITOR_TOKEN") or secrets.token_urlsafe(32)
 
     api.create_repo(repo, repo_type="space", space_sdk="docker", private=False, exist_ok=True)
     for f in FILES:
