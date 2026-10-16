@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { listBookingsReq } from "@/lib/review/auditor";
+import { listBookings } from "@/lib/review/bookings-store";
 import { bookingsAccess } from "@/lib/review/bookings-gate";
 import BookingsClient from "./BookingsClient";
 
@@ -17,6 +17,6 @@ export default async function BookingsPage() {
   if (!user) redirect("/signin?next=/admin/bookings");
   if (!allowed) notFound();
 
-  const res = await listBookingsReq();
+  const res = await listBookings();
   return <BookingsClient rows={res.bookings || []} failed={res.error || ""} />;
 }

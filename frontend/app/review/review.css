@@ -564,12 +564,7 @@
   display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:clamp(32px,5vw,72px); align-items:center;
 }
 .rv-soon-copy h1{ margin-top:18px; font-size:clamp(2.4rem,5vw,4rem); max-width:12ch; }
-.rv-soon-hot{
-  background:linear-gradient(90deg, var(--accent), #ffb27a, var(--accent)); background-size:200% 100%;
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-  animation:rvShine 3.2s linear infinite;
-}
-@keyframes rvShine{ to{ background-position:-200% 0; } }
+.rv-soon-hot{ color:var(--accent); }
 .rv-soon-copy .lede{ margin-top:18px; max-width:46ch; }
 .rv-soon-clock{ display:flex; flex-wrap:wrap; gap:12px; margin-top:32px; }
 .rv-soon-unit{
@@ -626,7 +621,7 @@
 @keyframes rvBob{ 50%{ transform:translateY(-6px); } }
 
 @media (prefers-reduced-motion: reduce){
-  .rv-soon-hot, .rv-cook-scan, .rv-cook-note, .rv-cook-score{ animation:none; }
+  .rv-cook-scan, .rv-cook-note, .rv-cook-score{ animation:none; }
   .rv-cook-note{ opacity:1; }
   .rv-cook-scan{ top:40%; }
 }

@@ -5,9 +5,9 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { DEV_COOKIE, DEV_NO_AUTH, reviewAccess, signedInUser } from "@/lib/review/viewer";
 import { launchLabel } from "@/lib/review/launch";
 import { bookingSchema, portfolioReviewSchema } from "@/lib/validation";
-import {
-  createBookingReq, latestForUser, listBookingsReq, readAudit, reviewsSince, startAudit,
-} from "@/lib/review/auditor";
+import { latestForUser, readAudit, reviewsSince, startAudit } from "@/lib/review/auditor";
+import { createBooking as saveBooking, listBookings } from "@/lib/review/bookings-store";
+import { loadSavedReport, saveReport } from "@/lib/review/report-store";
 import { MENTORING_PRICE_INR, REVIEWS_PER_DAY, SLOTS } from "@/lib/review/content";
 
 // Server Actions for /review. The browser sends the link and nothing else; who
@@ -187,7 +187,13 @@ export async function getReview(id) {
   const { user } = await signedInUser();
   if (!user) return { needsAuth: true };
 
-  return readAudit(id, user.id);
+  // Saved in Supabase already? That copy outlives the engine.
+  const saved = await loadSavedReport(id, user.id);
+  if (saved) return saved;
+
+  const job = await readAudit(id, user.id);
+  if (job?.status === "done") await saveReport(id, user.id, job);
+  return job;
 }
 
 /* --------------------------------------------------------- 1:1 booking
@@ -202,7 +208,7 @@ export async function getBookingPrefill() {
   if (!user) return { signedIn: false };
   const meta = user.user_metadata || {};
   const mine = await reviewStatus(user);
-  const booked = await listBookingsReq(user.id);
+  const booked = await listBookings(user.id);
   const open = (booked.bookings || []).find((b) => b.status !== "DONE" && b.status !== "CANCELLED") || null;
   return {
     signedIn: true,
@@ -237,7 +243,7 @@ export async function createBooking(input) {
   if (!open) return { ok: false, error: NOT_YET };
 
   const d = parsed.data;
-  const res = await createBookingReq({
+  const res = await saveBooking({
     user_id: user.id,
     name: d.name,
     email: d.email,

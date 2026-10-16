@@ -1,11 +1,10 @@
 ---
-title: Portfolio Auditor
+title: RPS Portfolio Review
 emoji: 🎯
-colorFrom: indigo
-colorTo: purple
-sdk: streamlit
-sdk_version: 1.50.0
-app_file: app.py
+colorFrom: red
+colorTo: yellow
+sdk: docker
+app_port: 7860
 pinned: false
 license: mit
 ---
