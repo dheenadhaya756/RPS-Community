@@ -12,3 +12,8 @@ community website/
 
 WORKSHOP-ADMIN-PLAN.md
 /uploads
+
+# Made by `vercel link`: the project link and a short-lived token.
+.vercel
+/.env.local
+

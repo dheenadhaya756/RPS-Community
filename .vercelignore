@@ -1,0 +1,5 @@
+# The site is frontend/ (the project's Root Directory). The review engine runs on
+# Cloud Run, and its folder holds a local .env with the Gemini key — never upload it.
+/portfolio-auditor
+**/.env
+**/.env.*

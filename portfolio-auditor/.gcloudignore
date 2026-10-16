@@ -1,0 +1,12 @@
+# What `gcloud run deploy --source .` leaves out of the upload. .env holds the
+# Gemini key: it reaches Cloud Run only as an environment variable, never as a file.
+.gcloudignore
+.git
+.gitignore
+.env
+.venv/
+__pycache__/
+*.sqlite3
+shots/
+deploy/
+app.py
