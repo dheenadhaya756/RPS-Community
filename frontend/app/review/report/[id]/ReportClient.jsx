@@ -146,6 +146,41 @@ export default function ReportClient({ id }) {
         {/* The A4 report's own header and footer — only on paper / in the PDF. */}
         {job?.status === 'done' && job.report && (
           <>
+            {/* Page one of the PDF: the RPS Cohorts cover. The review starts on page two. */}
+            <section className="rv-print-cover" aria-hidden="true">
+              <div className="rv-pc-top">
+                <img src={CONFIG.logoUrl} alt="" />
+                <span>RPS Cohorts</span>
+              </div>
+              <div className="rv-pc-title">
+                <p className="rv-pc-kicker">RPS Cohorts · Portfolio Review Tool</p>
+                <h2>
+                  Portfolio
+                  <br />
+                  Review
+                </h2>
+                <p className="rv-pc-lede">How your portfolio reads to a hiring manager, and what to fix first.</p>
+              </div>
+              <img className="rv-pc-art" src="/assets/review/cover-book.webp" alt="" />
+              <dl className="rv-pc-meta">
+                <div>
+                  <dt>Portfolio</dt>
+                  <dd>{site}</dd>
+                </div>
+                <div>
+                  <dt>Reviewed</dt>
+                  <dd>{job.report.reviewedOn}</dd>
+                </div>
+                <div>
+                  <dt>Reviewed against</dt>
+                  <dd>RPS Review Base {job.report.meta?.kb || ''}</dd>
+                </div>
+              </dl>
+              <div className="rv-pc-foot">
+                <span>cohorts.rockpaperscissors.studio</span>
+                <span>Learn. Build. Ship.</span>
+              </div>
+            </section>
             <div className="rv-print-head" aria-hidden="true">
               <img src={CONFIG.logoUrl} alt="" />
               <div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { siteOrigin, requestOrigin } from "@/lib/site-url";
+import { safeNext } from "@/lib/safe-next";
 
 // Handles the OAuth / email-link redirect: exchanges the `code` for a session
 // cookie, then forwards the user on to `next` (default /dashboard).
@@ -11,7 +12,7 @@ export async function GET(request) {
   // custom domain used to finish on the deployment URL.
   const origin = siteOrigin(requestOrigin(request));
   const code = searchParams.get("code");
-  const next = searchParams.get("next") || "/dashboard";
+  const next = safeNext(searchParams.get("next"));
 
   if (code) {
     const supabase = await createClient();

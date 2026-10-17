@@ -173,7 +173,18 @@ export async function submitPortfolio(input) {
     }
   }
 
-  const started = await startAudit(portfolioUrl, user.id, caseStudyUrl);
+  const started = await startAudit(portfolioUrl, user.id, caseStudyUrl, {
+    dailyLimit: REVIEWS_PER_DAY,
+    since: istDayStart(),
+  });
+  if (started.limit) {
+    return {
+      ok: false,
+      used: true,
+      latest: status.latest,
+      error: `You’ve used today’s ${REVIEWS_PER_DAY} free reviews. Come back tomorrow, or book a 1:1 call with us.`,
+    };
+  }
   if (started.error) return { ok: false, error: started.error };
   await stampAccount(user, started.id, portfolioUrl);
   return { ok: true, id: started.id, portfolioUrl };

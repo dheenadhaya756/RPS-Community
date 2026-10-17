@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 
 /* Approving, rejecting, removing and restoring a registration.
 
@@ -28,7 +28,7 @@ async function requireAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || !isAdminEmail(user.email)) return null;
+  if (!user || !isAdminUser(user)) return null;
   return user;
 }
 

@@ -5,7 +5,7 @@
 
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import { isLaunched } from "@/lib/review/launch";
 
 /* Local testing without logging in. Only in `npm run dev` (NODE_ENV is
@@ -45,6 +45,6 @@ export async function signedInUser() {
    has launched; before that, admins (and the pretend tester locally) only. */
 export async function reviewAccess() {
   const { supabase, user } = await signedInUser();
-  const admin = !!user && (user.isDev || isAdminEmail(user.email));
+  const admin = !!user && (user.isDev || isAdminUser(user));
   return { supabase, user, admin, open: isLaunched() || admin };
 }

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import io
+import ipaddress
 import os
 import re
+import socket
 import shutil
 import sys
 import threading
@@ -283,6 +285,55 @@ def validate_portfolio_url(raw: str) -> str:
     return validate_url(raw)
 
 
+# This engine runs inside Google Cloud, where private and link-local addresses (the metadata
+# server at 169.254.169.254 among them) can be reached. A portfolio link, and everything the
+# page it opens loads, may only reach public internet addresses. Answers are cached briefly.
+_HOST_CHECKS: dict[str, tuple[bool, float]] = {}
+
+
+def _public_ip(raw: str) -> bool:
+    ip = ipaddress.ip_address(raw.split("%")[0])
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    return ip.is_global and not ip.is_multicast
+
+
+def is_public_host(host: str) -> bool:
+    """True only when every address the host resolves to is a public internet address."""
+    host = (host or "").strip().rstrip(".").lower()
+    if not host or host == "localhost" or host.endswith((".localhost", ".local", ".internal")):
+        return False
+    hit = _HOST_CHECKS.get(host)
+    if hit and time.time() - hit[1] < 300:
+        return hit[0]
+    try:
+        infos = socket.getaddrinfo(host, None)
+        ok = bool(infos) and all(_public_ip(info[4][0]) for info in infos)
+    except (socket.gaierror, UnicodeError, ValueError):
+        ok = False
+    _HOST_CHECKS[host] = (ok, time.time())
+    return ok
+
+
+def _page_is_public(page) -> bool:
+    """Where a navigation ended up after any redirects: it must still be a public address."""
+    u = urlparse(page.url)
+    return u.scheme not in ("http", "https") or is_public_host(u.hostname or "")
+
+
+def _guard_requests(context) -> None:
+    """Refuse every request a page makes to a non-public address: the page itself, links it
+    opens, images, iframes and fetches. (Redirect hops aren't routed, so the page each navigation
+    lands on is checked again with _page_is_public.)"""
+    def handle(route):
+        u = urlparse(route.request.url)
+        if u.scheme in ("http", "https") and not is_public_host(u.hostname or ""):
+            return route.abort("blockedbyclient")
+        return route.continue_()
+
+    context.route("**/*", handle)
+
+
 def validate_url(raw: str) -> str:
     """Normalise and validate a user-supplied URL. Returns the cleaned URL or raises ValueError."""
     url = (raw or "").strip()
@@ -298,6 +349,18 @@ def validate_url(raw: str) -> str:
         raise ValueError("Local addresses can't be audited. Use a public portfolio URL.")
     if "." not in host:
         raise ValueError("The URL needs a full domain, e.g. yourname.com.")
+    try:
+        port = parsed.port
+    except ValueError:
+        port = -1
+    if port not in (None, 80, 443):
+        raise ValueError("Use your portfolio's normal web address, without a port number.")
+    try:
+        socket.getaddrinfo(host.rstrip("."), None)
+    except (socket.gaierror, UnicodeError):
+        raise ValueError("We couldn't find that website. Check the link for typos.")
+    if not is_public_host(host):
+        raise ValueError("That address isn't a public website. Use your portfolio's public link.")
     return url
 
 
@@ -451,6 +514,8 @@ def _capture_case_page(context, href: str, title_hint: str = "") -> CasePage | N
     page = context.new_page()
     try:
         page.goto(href, wait_until="domcontentloaded", timeout=20_000)
+        if not _page_is_public(page):
+            return None  # redirected to a private address
         try:
             page.wait_for_load_state("networkidle", timeout=8_000)
         except PlaywrightTimeout:
@@ -518,6 +583,8 @@ def _capture_case_studies(context, home_page, limit: int, warnings: list[str]) -
         page = context.new_page()
         try:
             page.goto(link["href"], wait_until="domcontentloaded", timeout=20_000)
+            if not _page_is_public(page):
+                continue  # redirected to a private address
             try:
                 page.wait_for_load_state("networkidle", timeout=8_000)
             except PlaywrightTimeout:
@@ -679,10 +746,13 @@ def _capture(
     with sync_playwright() as p:
         browser = _launch_browser(p)
         try:
+            # Service workers are blocked: their requests would bypass the address guard.
             context = browser.new_context(
-                viewport=VIEWPORT, user_agent=USER_AGENT, device_scale_factor=1, locale="en-US"
+                viewport=VIEWPORT, user_agent=USER_AGENT, device_scale_factor=1, locale="en-US",
+                service_workers="block",
             )
             context.set_default_timeout(NAV_TIMEOUT_MS)
+            _guard_requests(context)
             page = context.new_page()
 
             try:
@@ -694,9 +764,15 @@ def _capture(
                 msg = str(exc).split("\n")[0]
                 if "ERR_NAME_NOT_RESOLVED" in msg:
                     raise ScrapeError("That domain couldn't be found. Check the URL for typos.") from exc
+                if "ERR_BLOCKED_BY_CLIENT" in msg:
+                    raise ScrapeError("That link leads to a private address, so we can't review it.") from exc
                 if "ERR_CONNECTION" in msg or "ERR_ADDRESS" in msg:
                     raise ScrapeError("Couldn't connect to that site. It may be down or blocking automated browsers.") from exc
-                raise ScrapeError(f"The browser couldn't open that page: {msg}") from exc
+                # The browser's own message can name internal details; keep it in the logs only.
+                print(f"[scraper] could not open {url}: {msg}", flush=True)
+                raise ScrapeError("The browser couldn't open that page. Check the link is public and try again.") from exc
+            if not _page_is_public(page):
+                raise ScrapeError("That link leads to a private address, so we can't review it.")
 
             # 401/403/429 are often bot-protection responses that still render the page, so only
             # treat them as a problem if the page turns out to be nearly empty (checked below).

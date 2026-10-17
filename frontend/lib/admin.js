@@ -43,3 +43,12 @@ export function isAdminEmail(email) {
   if (!e) return false;
   return adminEmails().includes(e);
 }
+
+/* An admin is an allow-listed address that the account has confirmed it
+   owns. Without the confirmation check, someone could sign up with an admin's
+   address before that admin ever logs in. (This only holds while Supabase's
+   "Confirm email" is ON: with it off, Supabase marks every sign-up confirmed.) */
+export function isAdminUser(user) {
+  if (!user || !(user.email_confirmed_at || user.confirmed_at)) return false;
+  return isAdminEmail(user.email);
+}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SiteShell from '@/components/community/SiteShell';
 import { createClient } from '@/lib/supabase/client';
 import { siteUrl } from '@/lib/site-url';
+import { safeNext } from '@/lib/safe-next';
 import { landingAfterAuth, markAuthPending } from '@/lib/community/authLanding';
 import { clearClientState, markReturningVisitor } from '@/lib/community/session-state';
 
@@ -64,7 +65,7 @@ function SignInInner() {
   const [channel, setChannel] = useState('whatsapp');
   const [otp, setOtp] = useState('');
 
-  const next = searchParams.get('next') || '/dashboard';
+  const next = safeNext(searchParams.get('next'));
 
   // Keep only digits and a leading '+', then require E.164 (e.g. +919876543210).
   const normalizePhone = (p) => String(p || '').replace(/[^\d+]/g, '');

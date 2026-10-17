@@ -12,16 +12,26 @@ function headers() {
   return h;
 }
 
-/* Starts a review. Resolves to { id } or { error }. */
-export async function startAudit(url, userId, caseStudyUrl = "") {
+/* Starts a review. Resolves to { id }, { limit: true } when the engine counts
+   the daily allowance as used, or { error }. `dailyLimit` and `since` let the
+   engine enforce the allowance under its own lock, so parallel requests can't
+   all get past the site's count. */
+export async function startAudit(url, userId, caseStudyUrl = "", { dailyLimit, since } = {}) {
   try {
     const res = await fetch(`${AUDITOR_URL}/audits`, {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify({ url, user_id: userId, case_study_url: caseStudyUrl || null }),
+      body: JSON.stringify({
+        url,
+        user_id: userId,
+        case_study_url: caseStudyUrl || null,
+        daily_limit: dailyLimit || null,
+        since: since ?? null,
+      }),
       cache: "no-store",
     });
     const body = await res.json().catch(() => ({}));
+    if (res.status === 429) return { limit: true };
     if (res.status === 422) return { error: body.detail || "That link doesn’t look right." };
     if (!res.ok) throw new Error(`auditor ${res.status}`);
     return { id: body.id };

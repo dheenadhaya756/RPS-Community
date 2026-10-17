@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import { removeUpload, saveUpload } from "@/lib/uploads";
 
 const PHOTO_MAX = 250 * 1024;
@@ -40,7 +40,7 @@ async function requireAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || !isAdminEmail(user.email)) return null;
+  if (!user || !isAdminUser(user)) return null;
   return user;
 }
 

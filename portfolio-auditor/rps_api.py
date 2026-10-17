@@ -164,7 +164,10 @@ def _run(job_id: str, url: str, extra: str = "") -> None:
     except (ScrapeError, ValueError, AnalyzerError) as exc:
         _save(job_id, status="failed", stage="failed", error=str(exc))
     except Exception as exc:  # never leave a job stuck in "running"
-        _save(job_id, status="failed", stage="failed", error=f"Unexpected error: {exc}")
+        # The detail stays in the logs; the person sees a plain message.
+        print(f"[review] job {job_id} failed: {exc!r}", flush=True)
+        _save(job_id, status="failed", stage="failed",
+              error="Something went wrong while reviewing this portfolio. Please try again.")
 
 
 class AuditIn(BaseModel):
@@ -172,6 +175,10 @@ class AuditIn(BaseModel):
     user_id: str
     # Optional: one case study the person adds themselves, typically on Behance.
     case_study_url: str | None = None
+    # The site's daily allowance, enforced here under the lock so parallel requests can't
+    # all slip past the site's own count: at most `daily_limit` reviews since `since` (epoch s).
+    daily_limit: int | None = None
+    since: float | None = None
 
 
 @app.get("/health")
@@ -196,6 +203,14 @@ def create_audit(body: AuditIn, x_auditor_token: str | None = Header(default=Non
     job_id = uuid.uuid4().hex
     now = time.time()
     with _lock, _db() as conn:
+        if body.daily_limit:
+            used = conn.execute(
+                "SELECT COUNT(*) FROM rps_reports WHERE user_id=? AND created>=? "
+                "AND status IN ('queued', 'running', 'done')",
+                (body.user_id, body.since or 0),
+            ).fetchone()[0]
+            if used >= body.daily_limit:
+                raise HTTPException(status_code=429, detail="Daily review limit reached.")
         # Same link reviewed recently (by anyone): reuse that report rather than re-run it.
         row = conn.execute(
             "SELECT report, id FROM rps_reports WHERE url=? AND COALESCE(extra,'')=? AND status='done' AND updated>? "

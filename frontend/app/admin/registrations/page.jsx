@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import { loadAllWorkshops } from "@/lib/community/publicWorkshops";
 import { isPast, dateFull } from "@/lib/community/workshops";
 import { promoteWaitlisted } from "@/lib/seats";
@@ -45,7 +45,7 @@ export default async function RegistrationsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/signin?next=/admin/registrations");
-  if (!isAdminEmail(user.email)) notFound();
+  if (!isAdminUser(user)) notFound();
 
   /* This is the workshop registration list and nothing else.
 

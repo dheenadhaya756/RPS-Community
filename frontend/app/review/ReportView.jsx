@@ -4,7 +4,9 @@ import {
   PILLARS,
   bandFor,
   dimLevel,
+  exactScore,
   fixLift,
+  heldBy,
   levelName,
   overallScore,
   pillarPoints,
@@ -130,6 +132,8 @@ export default function ReportView({ report, id }) {
      the next one up if the fixes alone don't cross into it. None at the top. */
   const nextBand = BANDS[BANDS.findIndex((b) => b.id === band.id) - 1];
   const guideTo = !nextBand ? null : projectedBand.id !== band.id ? projectedBand.name : nextBand.name;
+  /* The gates holding the score below what its levels alone would earn. */
+  const holding = heldBy(report).filter((g) => g.max < Math.round(exactScore(report)));
 
   return (
     <>
@@ -145,7 +149,12 @@ export default function ReportView({ report, id }) {
             <p>
               {band.means}{' '}
               {fixes.length > 0 &&
-                (projectedBand.id !== band.id ? (
+                (projected <= score && holding.length > 0 ? (
+                  <>
+                    The {fixWord} below make it stronger, but your score stays at <b>{score}</b> until you clear
+                    what&rsquo;s holding it.
+                  </>
+                ) : projectedBand.id !== band.id ? (
                   <>
                     Make the {fixWord} below to reach about <b>{projected}</b> and move up to &ldquo;
                     {projectedBand.name}&rdquo;.
@@ -166,6 +175,19 @@ export default function ReportView({ report, id }) {
           projectedBand={projectedBand}
           fixCount={fixes.length}
         />
+
+        {holding.length > 0 && (
+          <div className="rv-held">
+            <b>What&rsquo;s holding your score at {score}</b>
+            <ul>
+              {holding.map((g) => (
+                <li key={g.id}>
+                  {g.name} <span>· above {g.max} needs this</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <dl className="rv-verdict-meta">
           <div>
@@ -339,13 +361,6 @@ export default function ReportView({ report, id }) {
             </li>
           ))}
         </ul>
-
-        {report.cantSee && (
-          <div className="rv-limits">
-            <b>What we couldn&rsquo;t check</b>
-            <p>{report.cantSee}</p>
-          </div>
-        )}
       </section>
 
       {/* ------------------------------------------------ guidance */}

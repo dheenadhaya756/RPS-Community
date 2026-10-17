@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import HostsClient from "./HostsClient";
 
 export const metadata = {
@@ -30,7 +30,7 @@ export default async function HostsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/signin?next=/admin/hosts");
-  if (!isAdminEmail(user.email)) notFound();
+  if (!isAdminUser(user)) notFound();
 
   const admin = createAdminClient();
   const { data, error } = await admin

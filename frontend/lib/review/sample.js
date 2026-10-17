@@ -3,7 +3,7 @@
 
    An invented portfolio, written to show the shape and tone of a real report —
    not anyone's actual work. The dimensions, weights, levels, gates and bands
-   are the RPS Review Base v0.1. Every number on the page is worked out from
+   are the RPS Review Base v0.3. Every number on the page is worked out from
    the levels below in code, the same way a real report's would be: nothing
    is typed in as a total.
    ============================================================================= */
@@ -66,14 +66,31 @@ export const BANDS = [
   { id: 'warming', name: 'Warming up', min: 0, means: 'The pieces are there. Now build one strong case study.' },
 ];
 
-/* Conditions that cap the band however well the rest scores. G1 and G5 stop
-   the score altogether; the others hold it at Getting there. */
+/* Conditions that hold the score down however well the rest scores (Review
+   Base v0.3). G1 and G5 are flagged on the report; the others cap the score
+   at `max`. Past 70 takes two real case studies and results; past 75, a
+   measured or shipped result; 85 and up, a lead project a top team would
+   call excellent. */
+const lead = (r) => (r.cases[0] && r.cases[0].levels) || {};
 export const GATES = [
   { id: 'g1', name: 'Work you can open', test: (r) => r.cases.length > 0 },
-  { id: 'g2', name: 'A problem stated somewhere', test: (r) => r.cases.some((c) => c.levels.d1 > 0), cap: 'getting' },
-  { id: 'g3', name: 'Your role stated somewhere', test: (r) => r.cases.some((c) => c.levels.d6 > 0), cap: 'getting' },
-  { id: 'g4', name: 'More than final screens', test: (r) => r.cases.some((c) => c.levels.d2 > 0), cap: 'getting' },
+  { id: 'g2', name: 'A problem stated somewhere', test: (r) => r.cases.some((c) => c.levels.d1 > 0), max: 49 },
+  { id: 'g3', name: 'Your role stated somewhere', test: (r) => r.cases.some((c) => c.levels.d6 > 0), max: 49 },
+  { id: 'g4', name: 'More than final screens', test: (r) => r.cases.some((c) => c.levels.d2 > 0), max: 49 },
   { id: 'g5', name: 'No integrity concerns', test: (r) => !r.integrityFlag },
+  { id: 'g6', name: 'A real design decision, explained, in your lead project', test: (r) => lead(r).d2 >= 2, max: 59 },
+  { id: 'g7', name: 'Results shown in at least one project', test: (r) => r.cases.some((c) => c.levels.d3 >= 2), max: 59 },
+  { id: 'g8', name: 'Your role clear in your lead project', test: (r) => lead(r).d6 >= 2, max: 64 },
+  { id: 'g9', name: 'At least two case studies', test: (r) => r.cases.length >= 2, max: 69 },
+  { id: 'g10', name: 'A measured or shipped result', test: (r) => r.cases.some((c) => c.levels.d3 >= 3), max: 74 },
+  {
+    id: 'g11',
+    name: 'A lead project with strong decisions and a measured result, on a clear, polished site',
+    test: (r) =>
+      lead(r).d1 >= 2 && lead(r).d2 >= 3 && lead(r).d3 >= 3 && lead(r).d6 >= 2 &&
+      r.portfolio.d5 >= 2 && r.portfolio.d8 >= 2,
+    max: 84,
+  },
 ];
 
 /* ------------------------------------------------------------------ maths */
@@ -85,8 +102,20 @@ export function dimLevel(report, dim) {
   return report.cases.reduce((sum, c, i) => sum + (c.levels[dim.id] || 0) * w[i], 0);
 }
 
-/* Points = weight × level ÷ 3. */
-export const dimPoints = (report, dim) => (dim.weight * dimLevel(report, dim)) / 3;
+/* How much of a dimension's weight each level earns. Not a straight line:
+   "Good" is the hiring bar, not two-thirds of the way to excellent, so it
+   earns half; "Needs work" earns little; only "Strong" earns it all. */
+export const LEVEL_SHARE = [0, 0.15, 0.5, 1];
+
+/* A blended level (2.3) earns in proportion between its two neighbours. */
+export function levelShare(level) {
+  const lo = Math.max(0, Math.min(3, Math.floor(level)));
+  const hi = Math.min(3, lo + 1);
+  return LEVEL_SHARE[lo] + (LEVEL_SHARE[hi] - LEVEL_SHARE[lo]) * (level - lo);
+}
+
+/* Points = weight × the share its level earns. */
+export const dimPoints = (report, dim) => dim.weight * levelShare(dimLevel(report, dim));
 
 export const pillarWeight = (pillarId) =>
   DIMENSIONS.filter((d) => d.pillar === pillarId).reduce((s, d) => s + d.weight, 0);
@@ -95,20 +124,27 @@ export const pillarPoints = (report, pillarId) =>
   DIMENSIONS.filter((d) => d.pillar === pillarId).reduce((s, d) => s + dimPoints(report, d), 0);
 
 export const exactScore = (report) => DIMENSIONS.reduce((s, d) => s + dimPoints(report, d), 0);
-export const overallScore = (report) => Math.round(exactScore(report));
 
 export const gateResults = (report) => GATES.map((g) => ({ ...g, passed: g.test(report) }));
 
+/* The gates this report misses that hold its score down, lowest ceiling first. */
+export const heldBy = (report) =>
+  gateResults(report)
+    .filter((g) => !g.passed && g.max != null)
+    .sort((a, b) => a.max - b.max);
+
+/* The most this report can score until it clears those gates: 100 if none. */
+export const scoreCap = (report) => heldBy(report).reduce((m, g) => Math.min(m, g.max), 100);
+
+/* The score before rounding, with the gates' ceiling applied. */
+const cappedScore = (report) => Math.min(exactScore(report), scoreCap(report));
+export const overallScore = (report) => Math.round(cappedScore(report));
+
+/* The band follows the score; the gates have already held the score down.
+   `report` is accepted so older callers keep working. */
+// eslint-disable-next-line no-unused-vars
 export function bandFor(score, report) {
-  let band = BANDS.find((b) => score >= b.min) || BANDS[BANDS.length - 1];
-  if (report) {
-    for (const g of gateResults(report)) {
-      if (g.passed || !g.cap) continue;
-      const cap = BANDS.find((b) => b.id === g.cap);
-      if (band.min > cap.min) band = cap;
-    }
-  }
-  return band;
+  return BANDS.find((b) => score >= b.min) || BANDS[BANDS.length - 1];
 }
 
 /* The report as it would be with one fix made: the case-study levels it
@@ -122,7 +158,10 @@ export function withFix(report, fix) {
     ),
   };
 }
-export const fixLift = (report, fix) => exactScore(withFix(report, fix)) - exactScore(report);
+/* What one fix adds to the score a person sees, gates included: a fix that
+   clears a gate can add more than its own points; one held by another gate,
+   less. */
+export const fixLift = (report, fix) => cappedScore(withFix(report, fix)) - cappedScore(report);
 export const withAllFixes = (report) => report.fixes.reduce((r, f) => withFix(r, f), report);
 
 /* 9.2 → "9.2", 12 → "12" */

@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin";
 import { loadAllWorkshops } from "@/lib/community/publicWorkshops";
 import LoginsClient from "./LoginsClient";
 
@@ -27,7 +27,7 @@ export default async function LoginsPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/signin?next=/admin/logins");
-  if (!isAdminEmail(user.email)) notFound();
+  if (!isAdminUser(user)) notFound();
 
   const admin = createAdminClient();
 
