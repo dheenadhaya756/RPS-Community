@@ -22,6 +22,7 @@ const FALLBACK = [
   "rishi@rockpaperscissors.studio",
   "vivin@rockpaperscissors.studio",
   "darshit@rockpaperscissors.studio",
+  "nikhil@rockpaperscissors.studio",
 ];
 
 function parse(raw) {
