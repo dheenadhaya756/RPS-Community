@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { DEV_COOKIE, DEV_NO_AUTH, reviewAccess, signedInUser } from "@/lib/review/viewer";
-import { launchLabel } from "@/lib/review/launch";
+import { PAUSED, launchLabel } from "@/lib/review/launch";
 import { bookingSchema, portfolioReviewSchema } from "@/lib/validation";
 import { latestForUser, readAudit, reviewsSince, startAudit } from "@/lib/review/auditor";
 import { createBooking as saveBooking, listBookings } from "@/lib/review/bookings-store";
@@ -44,7 +44,9 @@ function adminClient() {
   }
 }
 
-const NOT_YET = `Portfolio review opens on ${launchLabel()}. See you there!`;
+const NOT_YET = PAUSED
+  ? "Portfolio review is launching in a few days. See you there!"
+  : `Portfolio review opens on ${launchLabel()}. See you there!`;
 
 /* The start of today in India, as epoch seconds: the daily count resets here. */
 function istDayStart(now = Date.now()) {

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import SiteShell from '@/components/community/SiteShell';
 import { CONFIG } from '@/lib/community/content';
-import { LAUNCH_AT, launchLabel } from '@/lib/review/launch';
+import { LAUNCH_AT, PAUSED, launchLabel } from '@/lib/review/launch';
 import './review.css';
 
 /* "Something is cooking": what everyone except admins sees until portfolio
@@ -68,9 +68,9 @@ function Cooking() {
 export default function ComingSoon({ cohort }) {
   const { done, parts } = useCountdown(LAUNCH_AT);
 
-  // Launch moment: reload into the product.
+  // Launch moment: reload into the product. Never while paused.
   useEffect(() => {
-    if (done) {
+    if (done && !PAUSED) {
       const t = setTimeout(() => window.location.reload(), 1200);
       return () => clearTimeout(t);
     }
@@ -87,18 +87,25 @@ export default function ComingSoon({ cohort }) {
             </h1>
             <p className="lede">
               An AI portfolio reviewer that reads your work the way RPS designers hire — websites, Behance and
-              motion reels — and tells you exactly what to fix. It launches live at {cohort?.label || 'our next cohort'}.
+              motion reels — and tells you exactly what to fix.{' '}
+              {PAUSED
+                ? 'We’re putting the finishing touches on it.'
+                : `It launches live at ${cohort?.label || 'our next cohort'}.`}
             </p>
 
-            <div className="rv-soon-clock" role="timer" aria-live="off" aria-label={`Launching ${launchLabel()}`}>
-              {(parts || [['Days', 0], ['Hours', 0], ['Minutes', 0], ['Seconds', 0]]).map(([label, n]) => (
-                <div key={label} className="rv-soon-unit">
-                  <b>{parts ? pad(n) : '--'}</b>
-                  <small>{label}</small>
-                </div>
-              ))}
-            </div>
-            <p className="rv-soon-when">{done ? 'It’s live — opening now…' : `Launching ${launchLabel()}`}</p>
+            {!PAUSED && (
+              <div className="rv-soon-clock" role="timer" aria-live="off" aria-label={`Launching ${launchLabel()}`}>
+                {(parts || [['Days', 0], ['Hours', 0], ['Minutes', 0], ['Seconds', 0]]).map(([label, n]) => (
+                  <div key={label} className="rv-soon-unit">
+                    <b>{parts ? pad(n) : '--'}</b>
+                    <small>{label}</small>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="rv-soon-when">
+              {PAUSED ? 'Launching in a few days' : done ? 'It’s live — opening now…' : `Launching ${launchLabel()}`}
+            </p>
 
             <div className="cta-row rv-soon-cta">
               <Link className="btn lg go" href={cohort?.href || '/workshops'}>

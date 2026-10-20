@@ -11,7 +11,13 @@
 export const LAUNCH_AT =
   process.env.NEXT_PUBLIC_REVIEW_LAUNCH_AT || "2026-10-17T15:00:00+05:30";
 
+/* Paused: everyone except admins sees "Launching in a few days" (no countdown)
+   while the backend is being updated. Admins keep full access to test. Set it
+   back to false to reopen portfolio review to everyone. */
+export const PAUSED = true;
+
 export function isLaunched(now = Date.now()) {
+  if (PAUSED) return false;
   return now >= new Date(LAUNCH_AT).getTime();
 }
 
